@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# Node.js (web)
+node_modules/
+package-lock.json
+
+# ESP32 / Arduino
+*.o
+*.elf
+*.bin
+*.hex
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# IDEs
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs
+*.log
+
+# MQTT broker temp
+mosquitto.db
