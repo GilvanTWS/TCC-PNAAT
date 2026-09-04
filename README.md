@@ -160,7 +160,7 @@ TCC-PNAAT/
 - Controle de impressora 3D
 - Etapa de desacoplamento inicial das peças (normalmente resolvida por esteira vibratória)
 
-## Equipe - "Os guri do pinhatty"
+## Equipe - "Os guri do pinati"
 
 - Claylton Demésio Muniz Silva
 - Gilvan Alves Pastor Júnior
