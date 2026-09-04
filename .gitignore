@@ -36,3 +36,6 @@ Thumbs.db
 
 # MQTT broker temp
 mosquitto.db
+
+# Imagens anotadas (geradas pelo teste)
+pi/tests/images/anotada_*
