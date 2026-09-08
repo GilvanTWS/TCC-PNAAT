@@ -3,16 +3,17 @@ TRIA - Configurações do Classificador
 """
 
 # MQTT
-MQTT_BROKER = "localhost"
+MQTT_BROKER = "broker.mqttdashboard.com"
 MQTT_PORT = 1883
-TOPICO_CLASSIFICACAO = "tria/classificacao"
-TOPICO_COMANDO = "tria/comando"
+TOPICO_SEPARACAO = "esteira/separacao"
 
 # Classificação
 CLASSES = {
     "A": "circular",
     "B": "quadrada",
-    "C": "triangular"
+    "C": "triangular",
+    "R": "revisão",
+    "D": "descarte"
 }
 
 # Thresholds de confiança

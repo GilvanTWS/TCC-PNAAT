@@ -112,14 +112,21 @@ def classify_single(image_path, limiar_binarizacao=127, epsilon_ratio=0.04):
     }
 
 
-def classify_with_confidence(image_path):
+def classify_with_confidence(image_path, primeira_passagem=True):
     """
     Classifica com reanálise automática.
 
     Fluxo:
     1. Tenta classificar com parâmetros padrão
     2. Se confiança < limiar, reanálise com parâmetros alternativos
-    3. Após MAX_TENTATIVAS sem confiança, retorna 'discard'
+    3. Após MAX_TENTATIVAS sem confiança:
+       - Se primeira_passagem: retorna 'R' (revisão) → peça volta à câmera
+       - Se não: retorna 'D' (descarte) → peça é descartada
+
+    Args:
+        image_path: caminho da imagem
+        primeira_passagem: True se é a primeira passagem pela câmera,
+                          False se já retornou da revisão
 
     Retorna: dict com resultado final
     """
@@ -135,20 +142,26 @@ def classify_with_confidence(image_path):
         resultado["tentativa"] = tentativa
         historico.append(resultado)
 
-        # Se tem erro, pula pra próxima tentativa
         if "erro" in resultado:
             continue
 
-        # Se confiança é alta o suficiente, aceita
         if resultado["confianca"] >= LIMIAR_CONFIANCA:
+            destino = resultado["classe"]
+            resultado["destino"] = destino
             resultado["status"] = "aceito"
             resultado["historico"] = historico
             return resultado
 
-    # Todas as tentativas falharam
     ultimo = historico[-1] if historico else {}
-    ultimo["status"] = "discard"
-    ultimo["motivo"] = f"Confiança abaixo do limiar ({LIMIAR_CONFIANCA}) após {len(PARAMETROS_REANALISE)} tentativas"
+    destino = "R" if primeira_passagem else "D"
+    status = "review" if primeira_passagem else "discard"
+    ultimo["destino"] = destino
+    ultimo["status"] = status
+    ultimo["motivo"] = (
+        f"Confiança abaixo do limiar ({LIMIAR_CONFIANCA}) após "
+        f"{len(PARAMETROS_REANALISE)} tentativas — "
+        + ("revisão" if primeira_passagem else "descarte")
+    )
     ultimo["historico"] = historico
     return ultimo
 
@@ -178,6 +191,8 @@ def annotate_image(image_path, output_path=None):
     # Cor baseada no status
     if status == "aceito":
         cor = (0, 255, 0)  # Verde
+    elif status == "review":
+        cor = (0, 165, 255)  # Laranja
     else:
         cor = (0, 0, 255)  # Vermelho
 
