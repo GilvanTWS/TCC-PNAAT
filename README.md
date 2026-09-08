@@ -4,7 +4,17 @@ Projeto de Conclusão de Curso do programa **PNAAT 2026** (Programa Nacional de 
 
 ## Visão Geral
 
-O **TRIA** é um protótipo de **visão computacional + IoT** para triagem automática de componentes em uma esteira de produção industrial. O sistema classifica peças impressas em 3D por sua forma geométrica (circular, quadrada, triangular) e as direciona para rotas de separação.
+O **TRIA** é um protótipo de **visão computacional + IoT** para triagem automática de componentes em uma esteira de produção industrial. Uma câmera captura peças impressas em 3D, um classificador OpenCV as reconhece pela forma geométrica e o resultado é publicado via **MQTT** para um painel web que simula a esteira em tempo real.
+
+O sistema classifica as peças em **5 destinos**:
+
+| Código | Destino | Descrição |
+|--------|---------|-----------|
+| **A** | Circular | Peça reconhecida como círculo |
+| **B** | Quadrada | Peça reconhecida como quadrado |
+| **C** | Triangular | Peça reconhecida como triângulo |
+| **R** | Revisão | Peça ambígua na 1ª passagem → reanálise |
+| **D** | Descarte | Peça ainda ambígua após reanálise / não conforme |
 
 ### Fluxo do Sistema
 
@@ -19,112 +29,101 @@ O **TRIA** é um protótipo de **visão computacional + IoT** para triagem autom
                                               │
                                               ▼
                                     ┌──────────────────┐
-                                    │   MQTT Broker    │
-                                    │   (Mosquitto)    │
+                                    │ Daemon MQTT      │
+                                    │ broker.hivemq.com│
                                     └────────┬─────────┘
-                                     ┌───────┴────────┐
-                                     ▼                ▼
-                              ┌─────────────┐  ┌────────────┐
-                              │   Website   │  │    ESP32   │
-                              │  (smart)    │  │  (OLED)    │
-                              └─────────────┘  └────────────┘
+                                             ▼
+                                    ┌──────────────────┐
+                                    │  Esteira Virtual │
+                                    │   (React/MQTT.js)│
+                                    └──────────────────┘
 ```
 
-### Fluxo MQTT (Simplificado)
+### Fluxo MQTT
 
+- **Tópico:** `esteira/separacao`
+- **QoS:** `1`
+- **Retain:** `false`
+- **Publicador:** Raspberry Pi (classificador)
+- **Assinante:** Painel web (esteira virtual)
+
+O Raspberry Pi publica um JSON com `id_evento` e `destino`:
+
+```json
+{"id_evento": "pi-1234567890ab", "destino": "A", "timestamp": "2026-01-01T12:00:00"}
 ```
-Raspberry Pi publica:
-  → tria/classificacao   (tipo, confiança, timestamp)
-  → tria/comando          (classe para ESP32 exibir)
 
-Website lê:
-  → tria/classificacao
-  → tria/esp32/status
-
-ESP32 lê:
-  → tria/comando
-```
+O painel web usa o `id_evento` para deduplicar mensagens e animar o destino (A/B/C/R/D).
 
 ## Estrutura do Repositório
 
 ```
 TCC-PNAAT/
 │
-├── docs/                              Documentação (compartilhada)
-│   ├── levantamento_requisitos.pdf
-│   ├── cenarios.pdf
-│   └── apostila_pnaat.pdf
+├── docs/                     Documentação acadêmica
+│   ├── Levantamento_de_Requisitos.pdf
+│   ├── Cenários.pdf
+│   └── Apostila ... PNAAT 2026.pdf
 │
-├── pi/                                🟢 GILVAN (código Python)
-│   ├── main.py                        Entry point
-│   ├── classifier.py                  OpenCV (contornos, vértices, circularidade)
-│   ├── mqtt_publisher.py              Publica nos tópicos MQTT
-│   ├── config.py                      Tópicos, thresholds, constantes
-│   ├── requirements.txt               Dependências Python
-│   └── tests/                         Testes locais (sem hardware)
-│       ├── test_classifier.py
-│       └── mock_publisher.py          Simula payload MQTT
+├── pi/                       Código Python (visão computacional)
+│   ├── classifier.py         OpenCV: contornos, vértices, circularidade, revisão
+│   ├── mqtt_publisher.py     Publica destino no tópico esteira/separacao
+│   ├── config.py             Tópicos, classes, thresholds, constantes
+│   ├── requirements.txt      Dependências Python
+│   └── tests/
+│       └── test_classifier.py  Testes locais (sem hardware)
 │
-├── web/                               🟡 CLAYLTON (site smart)
+├── demo-esteira/             Painel web React (esteira virtual)
 │   ├── index.html
-│   ├── css/
-│   │   └── style.css
-│   ├── js/
-│   │   ├── app.js                     Lógica principal
-│   │   ├── mqtt-client.js             MQTT.js WebSocket
-│   │   ├── conveyor.js                Animação esteira + rotas
-│   │   ├── history.js                 Histórico + deduplicação + CSV
-│   │   └── status.js                  Status ESP32
-│   └── assets/
-│       └── imagens/
-│
-├── esp32/                             🔵 ANA BEATRIZ + ANTONIO RAFAEL
-│   ├── firmware/
-│   │   └── tria_display/
-│   │       └── tria_display.ino
-│   └── README.md
-│
-├── broker/                            🔵 MOSQUITTO (config)
-│   ├── mosquitto.conf
-│   └── README.md
-│
-├── testes/                            🔵 EVIDÊNCIAS DE ACEITE
-│   ├── rf01/                          Precisão 90% (27/30)
-│   ├── rf02/                          Classificação correta
-│   ├── rf03/                          Revisão automática
-│   ├── rf04/                          MQTT funcionando
-│   ├── rf05/                          Deduplicação
-│   ├── rf06/                          Descarte
-│   ├── rf07/                          Histórico
-│   ├── rnf01/                         Tempo < 2s
-│   └── rnf02/                         10min offline
+│   ├── package.json
+│   ├── vite.config.js
+│   └── src/
+│       ├── App.jsx           Lógica e animação da esteira
+│       ├── App.css           Visual do chão de fábrica
+│       └── index.css         Estilos globais
 │
 ├── .gitignore
 ├── README.md
 └── LICENSE
 ```
 
-## Divisão de Tarefas
+## Classificador
 
-| Membro | Área | Responsabilidades |
-|--------|------|-------------------|
-| **Gilvan** | `pi/` | Classificação OpenCV, regras de decisão, reanálise automática, publicação MQTT, documentação técnica |
-| **Claylton** | `web/` | Website smart (esteira virtual, 5 rotas, animações), cliente MQTT.js, deduplicação, histórico, CSV, status ESP32 |
-| **Ana Beatriz** | `esp32/`, `broker/`, `testes/` | Montagem física, firmware ESP32 + OLED, broker Mosquitto, execução dos ensaios de aceite |
-| **Antonio Rafael** | `esp32/`, `broker/`, `testes/` | Montagem física, preparação de amostras, configuração broker, coleta de evidências |
+A pasta `pi/` contém o classificador que decide o destino de cada peça a partir de uma imagem:
 
-## Tecnologias
+1. **Pré-processamento** — escala de cinza + binarização.
+2. **Detecção de contornos** — filtra contornos com área mínima relevante.
+3. **Análise de forma** — conta vértices e calcula a circularidade.
+4. **Reanálise automática** — se a confiança fica abaixo do limiar, tenta parâmetros alternativos de binarização.
+5. **Decisão final**:
+   - Confiante → `A`, `B` ou `C`
+   - Ambígua na 1ª passagem → `R` (vai para a revisão)
+   - Ambígua ao retornar da revisão → `D` (descarte)
 
-| Categoria | Tecnologia | Uso |
-|-----------|------------|-----|
-| Computador single-board | Raspberry Pi 5 (8 GB) | Captura, processamento, broker, servidor web |
-| Câmera | CSI Camera V1.3 (5 MP) | Captura silhuetas das peças |
-| Microcontrolador | Heltec WiFi LoRa 32 V3 (ESP32-S3) | Exibe resultado no OLED |
-| Visão computacional | OpenCV (Python) | Detecção de contornos, análise de forma |
-| Captura de imagem | Picamera2 (Python) | Interface com câmera CSI |
-| Messaging | MQTT (Mosquitto) | Comunicação Pi ↔ Website ↔ ESP32 |
-| Frontend web | HTML, CSS, JavaScript, MQTT.js | Esteira virtual, animações, contadores |
-| Sistema operacional | Raspberry Pi OS 64-bit | Sistema base |
+### Rodar os testes
+
+```bash
+cd pi
+source venv/bin/activate   # ou criar um ambiente com as dependências
+python tests/test_classifier.py
+```
+
+## Esteira Virtual
+
+A pasta `demo-esteira/` é o painel web que simula a esteira industrial em tempo real, consumindo as mensagens MQTT publicadas pelo classificador.
+
+- **Stack:** React + Vite, MQTT.js (WebSocket)
+- **Broker:** `broker.hivemq.com` (WebSocket seguro: `wss://...`)
+
+### Executar
+
+```bash
+cd demo-esteira
+npm install
+npm run dev
+```
+
+> O site e o aplicativo do classificador usam o **mesmo tópico** (`esteira/separacao`) e o **mesmo formato de payload** para funcionarem em conjunto.
 
 ## Requisitos de Aceite
 
@@ -133,8 +132,8 @@ TCC-PNAAT/
 |----|-----------|------|
 | RF01 | Precisão de classificação por classe | ≥ 90% (27/30) |
 | RF02 | Classificação correta das 3 formas | Circular, quadrada, triangular |
-| RF03 | Revisão automática de classificações incertas | Limite de tentativas |
-| RF04 | Comunicação MQTT funcionando | Pi → Website, Pi → ESP32 |
+| RF03 | Revisão automática de classificações incertas | 1ª passagem → `R`, reanálise → `D` |
+| RF04 | Comunicação MQTT funcionando | Pi → Painel web |
 | RF05 | Deduplicação de eventos no site | Sem duplicatas |
 | RF06 | Rota de descarte para peças não conformes | Funcional |
 | RF07 | Histórico de classificações | Visualização + exportação CSV |
@@ -145,27 +144,30 @@ TCC-PNAAT/
 | RNF01 | Tempo de resposta da animação | < 2 segundos |
 | RNF02 | Operação offline contínua | ≥ 10 minutos, reconexão < 30s |
 
+## Tecnologias
+
+| Categoria | Tecnologia | Uso |
+|-----------|------------|-----|
+| Computador single-board | Raspberry Pi 5 (8 GB) | Captura e processamento |
+| Câmera | CSI Camera V1.3 (5 MP) | Captura silhuetas das peças |
+| Visão computacional | OpenCV (Python) | Detecção de contornos, análise de forma |
+| Captura de imagem | Picamera2 (Python) | Interface com câmera CSI |
+| Messaging | MQTT (HiveMQ público) | Comunicação Pi ↔ Painel web |
+| Frontend web | React + Vite, MQTT.js | Esteira virtual, animações, contadores |
+
 ## Escopo
 
 ### Incluído
 - Classificação de peças por silhueta (3 formas)
-- Comunicação MQTT entre dispositivos
-- Website com simulação virtual da esteira
-- Exibição de resultado no OLED via ESP32
-- Histórico e exportação CSV
+- Comunicação MQTT entre o classificador e o painel web
+- Esteira virtual com fluxo contínuo, revisão e descarte
+- Reanálise automática de classificações incertas
 
 ### Fora de Escopo
 - Esteira motorizada real (simulada virtualmente)
 - Separação física por servos/motores (simulada no site)
 - Controle de impressora 3D
 - Etapa de desacoplamento inicial das peças (normalmente resolvida por esteira vibratória)
-
-## Equipe - "Os guri do pinati"
-
-- Claylton Demésio Muniz Silva
-- Gilvan Alves Pastor Júnior
-- Ana Beatriz Batista Caitano
-- Antonio Rafael Oliveira da Cunha
 
 ## Licença
 
