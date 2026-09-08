@@ -7,17 +7,15 @@ import cv2
 import numpy as np
 
 
-# Thresholds
 LIMIAR_CIRCULARIDADE = 0.7
 LIMIAR_AREA_MINIMA = 500
 LIMIAR_CONFIANCA = 0.7
 MAX_TENTATIVAS = 3
 
-# Parâmetros de reanálise
 PARAMETROS_REANALISE = [
-    {"binarizacao": 127, "epsilon_ratio": 0.04},   # Padrão
-    {"binarizacao": 100, "epsilon_ratio": 0.04},   # Binarização mais sensível
-    {"binarizacao": 150, "epsilon_ratio": 0.06},   # Binarização mais rígida + epsilon maior
+    {"binarizacao": 127, "epsilon_ratio": 0.04},
+    {"binarizacao": 100, "epsilon_ratio": 0.04},
+    {"binarizacao": 150, "epsilon_ratio": 0.06},
 ]
 
 
@@ -60,22 +58,17 @@ def classify_contour(contour, epsilon_ratio=0.04):
     vertices = count_vertices(contour, epsilon_ratio)
     circularity = calculate_circularity(contour)
 
-    # Triângulo: 3 vértices → alta confiança se detectou 3 claramente
     if vertices == 3:
-        # Confiança alta: detectou 3 vértices = é triângulo
         confianca = 0.9
         return 'C', confianca, vertices
 
-    # Quadrado: 4 vértices → alta confiança se detectou 4 claramente
     if vertices == 4:
         confianca = 0.85
         return 'B', confianca, vertices
 
-    # Círculo: alta circularidade e mais de 4 vértices
     if circularity > LIMIAR_CIRCULARIDADE:
         return 'A', circularity, vertices
 
-    # Caso ambíguo
     if circularity > 0.8:
         return 'A', circularity, vertices
     elif vertices <= 5:
@@ -174,7 +167,6 @@ def annotate_image(image_path, output_path=None):
 
     resultado = classify_with_confidence(image_path)
 
-    # Reconstrói imagem para anotação
     image = cv2.imread(image_path)
     thresh = preprocess_image(image)
     contours = detect_contours(thresh)
@@ -188,13 +180,12 @@ def annotate_image(image_path, output_path=None):
     circularity = resultado.get("circularidade", 0)
     status = resultado.get("status", "?")
 
-    # Cor baseada no status
     if status == "aceito":
-        cor = (0, 255, 0)  # Verde
+        cor = (0, 255, 0)
     elif status == "review":
-        cor = (0, 165, 255)  # Laranja
+        cor = (0, 165, 255)
     else:
-        cor = (0, 0, 255)  # Vermelho
+        cor = (0, 0, 255)
 
     cv2.drawContours(image, [main_contour], -1, cor, 2)
 

@@ -86,7 +86,7 @@ def testar_revisao():
     print("=" * 70)
 
     limiar_original = classifier.LIMIAR_CONFIANCA
-    classifier.LIMIAR_CONFIANCA = 1.5  # Impossível de alcançar → força decisão de reanálise
+    classifier.LIMIAR_CONFIANCA = 1.5
 
     path = os.path.join(IMAGES_DIR, "c1.png")
     if not os.path.exists(path):
