@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include "driver/gpio.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -58,6 +59,9 @@
 #define OLED_SDA_GPIO      CONFIG_TRIA_OLED_SDA_GPIO
 #define OLED_SCL_GPIO      CONFIG_TRIA_OLED_SCL_GPIO
 
+#define GPIO_VIBRADOR       CONFIG_TRIA_GPIO_VIBRADOR
+#define VIBRADOR_DURACAO_MS  300
+
 #define WATCHDOG_TIMEOUT_MS (CONFIG_TRIA_WATCHDOG_TIMEOUT_S * 1000)
 #define STATUS_INTERVAL_MS  (CONFIG_TRIA_STATUS_INTERVAL_S * 1000)
 
@@ -71,6 +75,26 @@ static char ultimo_id_evento[32] = "";
 
 static unsigned long ultima_msg_ms = 0;
 static bool comunicacao_ok = true;
+
+/* ============ Configuração e funções do vibrador ============ */
+
+static void vibrador_iniciar(void) {
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << GPIO_VIBRADOR),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&io_conf);
+    gpio_set_level(GPIO_VIBRADOR, 0);
+}
+
+static void acionar_vibrador(void) {
+    gpio_set_level(GPIO_VIBRADOR, 1);
+    vTaskDelay(pdMS_TO_TICKS(VIBRADOR_DURACAO_MS));
+    gpio_set_level(GPIO_VIBRADOR, 0);
+}
 
 /* ============ OLED (U8g2 - Heltec WiFi LoRa 32 V3) ============ */
 static U8G2 u8g2;  /* configuração SSD1306 128x64 SW_I2C */
@@ -310,6 +334,9 @@ void app_main(void)
 
     oled_iniciar();
     oled_mostrar("TRIA - ESP32", "Iniciando...", "");
+
+    vibrador_iniciar();
+    acionar_vibrador();
 
     ESP_ERROR_CHECK(servo_init(SERVO_GPIO));
     ESP_LOGI(TAG, "Servo no GPIO %d", SERVO_GPIO);

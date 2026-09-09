@@ -54,6 +54,14 @@ menu "TRIA - OLED"
 
 endmenu
 
+menu "TRIA - Vibrador"
+
+    config TRIA_GPIO_VIBRADOR
+        int "GPIO do fio de sinal do vibrador"
+        default 18
+
+endmenu
+
 menu "TRIA - Watchdog de comunicação"
 
     config TRIA_WATCHDOG_TIMEOUT_S
