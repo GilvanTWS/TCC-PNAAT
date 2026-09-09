@@ -54,6 +54,7 @@ TCC-PNAAT/
 │   └── Apostila ... PNAAT 2026.pdf
 │
 ├── pi/                            Código Python (visão computacional - Raspberry Pi)
+│   ├── main.py                    Pipeline: Picamera2, ROI, detecção de passagem, MQTT
 │   ├── classifier.py              OpenCV: contornos, vértices, detecção de X
 │   ├── mqtt_publisher.py          Publica decisões e status nos tópicos MQTT
 │   ├── config.py                  Configurações centralizadas
@@ -61,15 +62,12 @@ TCC-PNAAT/
 │   └── tests/
 │       └── test_classifier.py     Testes locais (sem hardware)
 │
-├── esp32/                         Firmware ESP32 (nó de atuação - Arduino/PlatformIO)
-│   ├── platformio.ini             Configuração PlatformIO
-│   └── src/
-│       └── main.cpp               Arduino: servo, OLED, MQTT, watchdog
-│
-├── tria-esp/                      PoC do servo motor (ESP-IDF) - código do Claylton
-│   ├── components/servo/          Componente do servo (servo.c/servo.h)
+├── tria-esp/                      Firmware ESP32 do nó de atuação (ESP-IDF)
+│   ├── components/servo/          Componente do servo (base: PoC do Claylton)
 │   ├── main/
-│   │   └── main.c                 Firmware ESCOM: acionamento do servo
+│   │   ├── main.c                 MQTT, servo (A/B/C), OLED, watchdog
+│   │   ├── Kconfig.projbuild      Configuração via menuconfig
+│   │   └── idf_component.yml      Dependências (esp-mqtt, u8g2)
 │   ├── LIGACAO_MICRO_SERVO.md     Guia de ligação do micro servo ao ESP32
 │   └── .devcontainer/             Ambiente de desenvolvimento
 │
@@ -92,6 +90,12 @@ TCC-PNAAT/
 
 ### Raspberry Pi (visão computacional)
 
+- **main.py** - Pipeline principal (seção 2.1 do levantamento):
+  - Captura ao vivo com **Picamera2** (câmera CSI fixa)
+  - Detecta quando uma nova peça entra na **ROI**, sem sensor de presença
+  - Classifica cada peça **uma única vez** antes de liberar a próxima (RNF05)
+  - Publica a decisão no MQTT e calcula o instante de atuação (RNF01)
+  - Modo `--imagem` para simulação/teste sem câmera
 - **classifier.py** - Classifica as 3 situações visuais usando OpenCV:
   - Detecção de contornos e vértices (approxPolyDP)
   - Hough Line Transform para detectar a marca X contrastante
@@ -101,20 +105,17 @@ TCC-PNAAT/
   - `tria/status/pi` - disponibilidade do processo de visão
 - **config.py** - Configurações de tópicos, parâmetros, calibração
 
-### ESP32 (nó de atuação - Heltec WiFi LoRa 32 V3)
+### ESP32 (nó de atuação - Heltec WiFi LoRa 32 V3) — `tria-esp/`
+
+Firmware ESP-IDF construído sobre a **PoC do servo do Claylton** (`components/servo`), expandido para:
 
 - Assina `tria/triagem` e move o servo para a posição calibrada (A/B/C)
 - Exibe classe, destino e estado no OLED integrado
-- Publica confirmação em `tria/atuador` e estado em `tria/status/esp32`
-- Watchdog de comunicação: OLED indica indisponibilidade se sem mensagem por >15s
+- Publica confirmação em `tria/atuador` (RF05) e estado em `tria/status/esp32`
+- **Watchdog de comunicação** (RNF04): Last Will + OLED indicam indisponibilidade se sem mensagem por >15s
+- Configurável via `idf.py menuconfig` (Wi-Fi, broker, ângulos A/B/C, pinos)
 
-### tria-esp (PoC do servo motor - ESP-IDF)
-
-PoC realizada por **Claylton** para validar o acionamento do micro servo:
-
-- Código em `tria-esp/` (ESP-IDF com componente `servo`)
-- **Guia de ligação:** [`tria-esp/LIGACAO_MICRO_SERVO.md`](tria-esp/LIGACAO_MICRO_SERVO.md) — onde conectar cada fio do micro servo (GND, VCC e sinal PWM no `GPIO 47`)
-- Importante: o sinal PWM do servo usa o `GPIO 47` (verificar no `main.c`)
+**Guia de ligação:** [`tria-esp/LIGACAO_MICRO_SERVO.md`](tria-esp/LIGACAO_MICRO_SERVO.md) — onde conectar cada fio do micro servo (GND, VCC e sinal PWM no `GPIO 47`).
 
 > Os guias de ligação dos componentes serão mantidos em cada pasta do projeto e referenciados neste README.
 
@@ -185,7 +186,9 @@ cd pi
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-python tests/test_classifier.py
+python tests/test_classifier.py        # testes locais
+python main.py                         # captura ao vivo (Picamera2)
+python main.py --imagem teste.jpg      # simulação sem câmera
 ```
 
 ### 2. Stack MING
@@ -197,13 +200,15 @@ docker compose up -d
 # Verificar: http://localhost:1880 (Node-RED)
 ```
 
-### 3. Firmware ESP32
+### 3. Firmware ESP32 (tria-esp)
 
 ```bash
-cd esp32
-# Instalar PlatformIO CLI (https://platformio.org/install/cli)
-# Editar WIFI_SSID, WIFI_PASSWORD e MQTT_SERVER em src/main.cpp
-pio run -t upload
+cd tria-esp
+# Instalar ESP-IDF (https://docs.espressif.com/projects/esp-idf)
+idf.py set-target esp32s3
+idf.py menuconfig    # TRIA: Wi-Fi, broker MQTT, ângulos A/B/C, pinos
+idf.py build
+idf.py -p /dev/ttyUSB0 flash monitor
 ```
 
 ## Tecnologias

@@ -1,0 +1,67 @@
+menu "TRIA - Rede"
+
+    config TRIA_WIFI_SSID
+        string "SSID da rede Wi-Fi do ensaio"
+        default "SUA_REDE_WIFI"
+
+    config TRIA_WIFI_PASSWORD
+        string "Senha da rede Wi-Fi do ensaio"
+        default "SUA_SENHA"
+
+    config TRIA_MQTT_BROKER_URI
+        string "URI do broker Mosquitto (mqtt://IP:porta)"
+        default "mqtt://192.168.0.100:1883"
+
+    config TRIA_ESP32_ID
+        string "Identificador deste nó"
+        default "esp32-tria-01"
+
+endmenu
+
+menu "TRIA - Atuação (servo)"
+
+    config TRIA_SERVO_GPIO
+        int "GPIO do fio de sinal do micro servo"
+        default 47
+
+    config TRIA_ANGULO_A
+        int "Ângulo calibrado para Saída A (Quadrado)"
+        default 45
+
+    config TRIA_ANGULO_B
+        int "Ângulo calibrado para Saída B (Triângulo)"
+        default 90
+
+    config TRIA_ANGULO_C
+        int "Ângulo calibrado para Saída C (Descarte)"
+        default 135
+
+    config TRIA_TEMPO_SERVO_MS
+        int "Tempo para o servo estabilizar (ms)"
+        default 500
+
+endmenu
+
+menu "TRIA - OLED"
+
+    config TRIA_OLED_SDA_GPIO
+        int "GPIO SDA do OLED"
+        default 8
+
+    config TRIA_OLED_SCL_GPIO
+        int "GPIO SCL do OLED"
+        default 9
+
+endmenu
+
+menu "TRIA - Watchdog de comunicação"
+
+    config TRIA_WATCHDOG_TIMEOUT_S
+        int "Timeout sem mensagem MQTT antes de indicar indisponibilidade (s)"
+        default 15
+
+    config TRIA_STATUS_INTERVAL_S
+        int "Intervalo de publicação de status (s)"
+        default 30
+
+endmenu
