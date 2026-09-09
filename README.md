@@ -171,4 +171,4 @@ npm run dev
 
 ## Licença
 
-[MIT License](LICENSE) - Copyright 2026 GilvanTWS
+[MIT License](LICENSE) - Copyright 2026 GilvanTWS and Claylton-Muniz
