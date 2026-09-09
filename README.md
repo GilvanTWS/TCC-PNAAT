@@ -61,10 +61,17 @@ TCC-PNAAT/
 │   └── tests/
 │       └── test_classifier.py     Testes locais (sem hardware)
 │
-├── esp32/                         Firmware ESP32 (nó de atuação)
+├── esp32/                         Firmware ESP32 (nó de atuação - Arduino/PlatformIO)
 │   ├── platformio.ini             Configuração PlatformIO
 │   └── src/
 │       └── main.cpp               Arduino: servo, OLED, MQTT, watchdog
+│
+├── tria-esp/                      PoC do servo motor (ESP-IDF) - código do Claylton
+│   ├── components/servo/          Componente do servo (servo.c/servo.h)
+│   ├── main/
+│   │   └── main.c                 Firmware ESCOM: acionamento do servo
+│   ├── LIGACAO_MICRO_SERVO.md     Guia de ligação do micro servo ao ESP32
+│   └── .devcontainer/             Ambiente de desenvolvimento
 │
 ├── ming/                          Stack MING (Docker Compose)
 │   ├── docker-compose.yml         Mosquitto, Node-RED, InfluxDB, Grafana
@@ -100,6 +107,16 @@ TCC-PNAAT/
 - Exibe classe, destino e estado no OLED integrado
 - Publica confirmação em `tria/atuador` e estado em `tria/status/esp32`
 - Watchdog de comunicação: OLED indica indisponibilidade se sem mensagem por >15s
+
+### tria-esp (PoC do servo motor - ESP-IDF)
+
+PoC realizada por **Claylton** para validar o acionamento do micro servo:
+
+- Código em `tria-esp/` (ESP-IDF com componente `servo`)
+- **Guia de ligação:** [`tria-esp/LIGACAO_MICRO_SERVO.md`](tria-esp/LIGACAO_MICRO_SERVO.md) — onde conectar cada fio do micro servo (GND, VCC e sinal PWM no `GPIO 47`)
+- Importante: o sinal PWM do servo usa o `GPIO 47` (verificar no `main.c`)
+
+> Os guias de ligação dos componentes serão mantidos em cada pasta do projeto e referenciados neste README.
 
 ### Stack MING (Docker)
 
