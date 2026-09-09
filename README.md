@@ -4,170 +4,222 @@ Projeto de Conclusão de Curso do programa **PNAAT 2026** (Programa Nacional de 
 
 ## Visão Geral
 
-O **TRIA** é um protótipo de **visão computacional + IoT** para triagem automática de componentes em uma esteira de produção industrial. Uma câmera captura peças impressas em 3D, um classificador OpenCV as reconhece pela forma geométrica e o resultado é publicado via **MQTT** para um painel web que simula a esteira em tempo real.
+O **TRIA** é uma Prova de Conceito (PoC) física que valida experimentalmente a cadeia:
 
-O sistema classifica as peças em **5 destinos**:
+**pré-separação física → esteira → captura → classificação → MQTT → atuação do servo → três destinos físicos → registro e visualização no MING**
 
-| Código | Destino | Descrição |
-|--------|---------|-----------|
-| **A** | Circular | Peça reconhecida como círculo |
-| **B** | Quadrada | Peça reconhecida como quadrado |
-| **C** | Triangular | Peça reconhecida como triângulo |
-| **R** | Revisão | Peça ambígua na 1ª passagem → reanálise |
-| **D** | Descarte | Peça ainda ambígua após reanálise / não conforme |
+A solução ataca o **Cenário 2** do documento de Cenários: triagem de diferentes componentes misturados em uma linha de manufatura, com peças em posições variadas, em contato ou parcialmente sobrepostas.
 
-### Fluxo do Sistema
+### Arquitetura da PoC
 
 ```
-┌─────────────┐    ┌──────────────┐    ┌─────────────┐
-│ Impressora  │ →  │  Esteira Pi  │ →  │ Pi Cam 5MP  │
-│  (amostras) │    │  (simulação) │    │  (captura)  │
-└─────────────┘    └──────────────┘    └──────┬──────┘
-                                              │
-                                     Classificação
-                                     (OpenCV)
-                                              │
-                                              ▼
-                                    ┌──────────────────┐
-                                    │ Daemon MQTT      │
-                                    │ broker.hivemq.com│
-                                    └────────┬─────────┘
-                                             ▼
-                                    ┌──────────────────┐
-                                    │  Esteira Virtual │
-                                    │   (React/MQTT.js)│
-                                    └──────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        FLUXO FÍSICO                                 │
+│                                                                     │
+│  [Entrada] → [Pré-separador Vibratório] → [Esteira] → [Câmera]    │
+│       ↓                                                           │
+│  [Raspberry Pi 5 - Classificação]                                  │
+│       ↓                                                           │
+│  [Servo Desviador] → [Saída A] [Saída B] [Saída C]                │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                        FLUXO DE DADOS (MING)                       │
+│                                                                     │
+│  Raspberry Pi 5  →  Mosquitto/MQTT  →  ESP32 (servo + OLED)       │
+│                        ↓                                            │
+│                    Node-RED (validação)                             │
+│                        ↓                                            │
+│                    InfluxDB (série temporal)                        │
+│                        ↓                                            │
+│                    Grafana (dashboard)                              │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Fluxo MQTT
+### Situação visual e destino
 
-- **Tópico:** `esteira/separacao`
-- **QoS:** `1`
-- **Retain:** `false`
-- **Publicador:** Raspberry Pi (classificador)
-- **Assinante:** Painel web (esteira virtual)
-
-O Raspberry Pi publica um JSON com `id_evento` e `destino`:
-
-```json
-{"id_evento": "pi-1234567890ab", "destino": "A", "timestamp": "2026-01-01T12:00:00"}
-```
-
-O painel web usa o `id_evento` para deduplicar mensagens e animar o destino (A/B/C/R/D).
+| Visual | Decisão | Destino físico |
+|--------|---------|----------------|
+| QUADRADO | Peça normal | Saída A - Quadrado |
+| TRIÂNGULO | Peça normal | Saída B - Triângulo |
+| QUADRADO COM X | Peça defeituosa | Saída C - Descarte |
 
 ## Estrutura do Repositório
 
 ```
 TCC-PNAAT/
-│
-├── docs/                     Documentação acadêmica
-│   ├── Levantamento_de_Requisitos.pdf
+├── docs/                          Documentação acadêmica
+│   ├── TRIA_Entrega_1_Levantamento_de_Requisitos_PoC_Fisica.pdf
 │   ├── Cenários.pdf
 │   └── Apostila ... PNAAT 2026.pdf
 │
-├── pi/                       Código Python (visão computacional)
-│   ├── classifier.py         OpenCV: contornos, vértices, circularidade, revisão
-│   ├── mqtt_publisher.py     Publica destino no tópico esteira/separacao
-│   ├── config.py             Tópicos, classes, thresholds, constantes
-│   ├── requirements.txt      Dependências Python
+├── pi/                            Código Python (visão computacional - Raspberry Pi)
+│   ├── classifier.py              OpenCV: contornos, vértices, detecção de X
+│   ├── mqtt_publisher.py          Publica decisões e status nos tópicos MQTT
+│   ├── config.py                  Configurações centralizadas
+│   ├── requirements.txt           Dependências Python
 │   └── tests/
-│       └── test_classifier.py  Testes locais (sem hardware)
+│       └── test_classifier.py     Testes locais (sem hardware)
 │
-├── demo-esteira/             Painel web React (esteira virtual)
-│   ├── index.html
-│   ├── package.json
-│   ├── vite.config.js
+├── esp32/                         Firmware ESP32 (nó de atuação)
+│   ├── platformio.ini             Configuração PlatformIO
 │   └── src/
-│       ├── App.jsx           Lógica e animação da esteira
-│       ├── App.css           Visual do chão de fábrica
-│       └── index.css         Estilos globais
+│       └── main.cpp               Arduino: servo, OLED, MQTT, watchdog
+│
+├── ming/                          Stack MING (Docker Compose)
+│   ├── docker-compose.yml         Mosquitto, Node-RED, InfluxDB, Grafana
+│   ├── mosquitto/
+│   │   └── mosquitto.conf         Configuração do broker MQTT
+│   ├── nodered/
+│   │   └── flows.json             Fluxo de validação e deduplicação
+│   └── grafana/
+│       └── datasources/
+│           └── influxdb.yml       DataSource InfluxDB (auto-provisioning)
 │
 ├── .gitignore
 ├── README.md
 └── LICENSE
 ```
 
-## Classificador
+## Componentes
 
-A pasta `pi/` contém o classificador que decide o destino de cada peça a partir de uma imagem:
+### Raspberry Pi (visão computacional)
 
-1. **Pré-processamento** — escala de cinza + binarização.
-2. **Detecção de contornos** — filtra contornos com área mínima relevante.
-3. **Análise de forma** — conta vértices e calcula a circularidade.
-4. **Reanálise automática** — se a confiança fica abaixo do limiar, tenta parâmetros alternativos de binarização.
-5. **Decisão final**:
-   - Confiante → `A`, `B` ou `C`
-   - Ambígua na 1ª passagem → `R` (vai para a revisão)
-   - Ambígua ao retornar da revisão → `D` (descarte)
+- **classifier.py** - Classifica as 3 situações visuais usando OpenCV:
+  - Detecção de contornos e vértices (approxPolyDP)
+  - Hough Line Transform para detectar a marca X contrastante
+  - Reanálise automática com parâmetros alternativos
+- **mqtt_publisher.py** - Publica nos tópicos MQTT:
+  - `tria/triagem` - resultado da inspeção (payload mínimo: id_evento, horario, classe, destino, defeito)
+  - `tria/status/pi` - disponibilidade do processo de visão
+- **config.py** - Configurações de tópicos, parâmetros, calibração
 
-### Rodar os testes
+### ESP32 (nó de atuação - Heltec WiFi LoRa 32 V3)
+
+- Assina `tria/triagem` e move o servo para a posição calibrada (A/B/C)
+- Exibe classe, destino e estado no OLED integrado
+- Publica confirmação em `tria/atuador` e estado em `tria/status/esp32`
+- Watchdog de comunicação: OLED indica indisponibilidade se sem mensagem por >15s
+
+### Stack MING (Docker)
+
+- **Mosquitto** - Broker MQTT local (portas 1883/9001 WebSocket)
+- **Node-RED** - Valida campos, evita reprocessamento de IDs conhecidos, grava no InfluxDB
+- **InfluxDB** - Armazena cada evento de triagem como registro temporal
+- **Grafana** - Dashboard: totais, classes, defeitos, destinos, histórico, estado de comunicação
+
+## Tópicos MQTT
+
+| Tópico | Publica | Assina | Conteúdo |
+|--------|---------|--------|----------|
+| `tria/triagem` | Raspberry Pi | ESP32, Node-RED | Resultado da inspeção e destino |
+| `tria/status/pi` | Raspberry Pi | Node-RED | Disponibilidade do processo de visão |
+| `tria/status/esp32` | ESP32 | Node-RED, Pi (opcional) | Conexão do nó de atuação |
+| `tria/atuador` | ESP32 | Raspberry Pi, Node-RED | Confirmação vinculada ao id_evento |
+
+## Payload MQTT (tria/triagem)
+
+```json
+{
+  "id_evento": "pi-abc123def456",
+  "horario": "2026-09-08T10:30:00",
+  "classe": "QUADRADO",
+  "destino": "A",
+  "defeito": false,
+  "instante_atuacao": 3.3,
+  "tempo_processamento_ms": 45
+}
+```
+
+## Requisitos e Critérios de Aceite
+
+### Funcionais
+
+| ID | Requisito | Critério |
+|----|-----------|----------|
+| RF01 | Detectar passagem e capturar | 19/20 ciclos válidos |
+| RF02 | Classificar quadrado e triângulo | >= 18/20 para cada classe |
+| RF03 | Identificar quadrado com X | >= 18/20 como defeito |
+| RF04 | Comunicar via MQTT | >= 29/30 eventos consistentes |
+| RF05 | Posicionar servo corretamente | >= 27/30 comandos |
+| RF06 | Encaminhar fisicamente | >= 27/30 peças na saída correta |
+| RF07 | Pré-separação por vibração | >= 8/10 chegadas separadas |
+| RF08 | Registrar no InfluxDB | 30/30 registros sem perda |
+| RF09 | Apresentar no Grafana | Painéis conferem com InfluxDB |
+| RF10 | Fluxo completo | >= 13/15 ciclos completos |
+
+### Não-funcionais
+
+| ID | Requisito | Critério |
+|----|-----------|----------|
+| RNF01 | Preparar atuação no prazo | Servo estabiliza com >= 0,3s margem |
+| RNF02 | Consistência da comunicação | >= 29/30 entregas válidas |
+| RNF03 | Operar continuamente | 15 minutos ou 30 peças sem reinício |
+| RNF04 | Recuperar comunicação | Reconectar em <= 30s, sem executar comando antigo |
+| RNF05 | Não duplicar contagens | 30 IDs únicos, sem duplicatas |
+| RNF06 | Funcionar localmente | 15 minutos sem Internet |
+
+## Rodar
+
+### 1. Classificador (Raspberry Pi)
 
 ```bash
 cd pi
-source venv/bin/activate   # ou criar um ambiente com as dependências
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 python tests/test_classifier.py
 ```
 
-## Esteira Virtual
-
-A pasta `demo-esteira/` é o painel web que simula a esteira industrial em tempo real, consumindo as mensagens MQTT publicadas pelo classificador.
-
-- **Stack:** React + Vite, MQTT.js (WebSocket)
-- **Broker:** `broker.hivemq.com` (WebSocket seguro: `wss://...`)
-
-### Executar
+### 2. Stack MING
 
 ```bash
-cd demo-esteira
-npm install
-npm run dev
+cd ming
+docker compose up -d
+# Verificar: http://localhost:3000 (Grafana)
+# Verificar: http://localhost:1880 (Node-RED)
 ```
 
-> O site e o aplicativo do classificador usam o **mesmo tópico** (`esteira/separacao`) e o **mesmo formato de payload** para funcionarem em conjunto.
+### 3. Firmware ESP32
 
-## Requisitos de Aceite
-
-### Funcionais
-| ID | Descrição | Meta |
-|----|-----------|------|
-| RF01 | Precisão de classificação por classe | ≥ 90% (27/30) |
-| RF02 | Classificação correta das 3 formas | Circular, quadrada, triangular |
-| RF03 | Revisão automática de classificações incertas | 1ª passagem → `R`, reanálise → `D` |
-| RF04 | Comunicação MQTT funcionando | Pi → Painel web |
-| RF05 | Deduplicação de eventos no site | Sem duplicatas |
-| RF06 | Rota de descarte para peças não conformes | Funcional |
-| RF07 | Histórico de classificações | Visualização + exportação CSV |
-
-### Não-funcionais
-| ID | Descrição | Meta |
-|----|-----------|------|
-| RNF01 | Tempo de resposta da animação | < 2 segundos |
-| RNF02 | Operação offline contínua | ≥ 10 minutos, reconexão < 30s |
+```bash
+cd esp32
+# Instalar PlatformIO CLI (https://platformio.org/install/cli)
+# Editar WIFI_SSID, WIFI_PASSWORD e MQTT_SERVER em src/main.cpp
+pio run -t upload
+```
 
 ## Tecnologias
 
 | Categoria | Tecnologia | Uso |
 |-----------|------------|-----|
 | Computador single-board | Raspberry Pi 5 (8 GB) | Captura e processamento |
-| Câmera | CSI Camera V1.3 (5 MP) | Captura silhuetas das peças |
-| Visão computacional | OpenCV (Python) | Detecção de contornos, análise de forma |
+| Câmera | CSI Camera V1.3 (5 MP) | Captura da região de inspeção |
+| Visão computacional | OpenCV (Python) | Detecção de contornos, análise de forma, Hough |
 | Captura de imagem | Picamera2 (Python) | Interface com câmera CSI |
-| Messaging | MQTT (HiveMQ público) | Comunicação Pi ↔ Painel web |
-| Frontend web | React + Vite, MQTT.js | Esteira virtual, animações, contadores |
+| Nó de atuação | ESP32-S3 (Heltec WiFi LoRa 32 V3) | Servo, OLED, MQTT |
+| Messaging | MQTT (Mosquitto local) | Comunicação Pi ↔ ESP32 ↔ Node-RED |
+| Integração | Node-RED | Valiação, transformação, deduplicação |
+| Banco temporal | InfluxDB | Série temporal de eventos |
+| Dashboard | Grafana | Visualização de indicadores |
+| Orquestração | Docker Compose | Stack MING reproduzível |
 
 ## Escopo
 
 ### Incluído
-- Classificação de peças por silhueta (3 formas)
-- Comunicação MQTT entre o classificador e o painel web
-- Esteira virtual com fluxo contínuo, revisão e descarte
-- Reanálise automática de classificações incertas
+- Pré-separação vibratória (mecânica a definir)
+- Classificação de 3 situações visuais com OpenCV
+- Deteção de marca X contrastante (defeito)
+- Comunicação MQTT local entre Pi, ESP32 e Node-RED
+- Atuação com servo de 3 posições
+- Dashboard com totais, classes, defeitos e histórico
+- Registro temporal de todos os eventos
 
-### Fora de Escopo
-- Esteira motorizada real (simulada virtualmente)
-- Separação física por servos/motores (simulada no site)
-- Controle de impressora 3D
-- Etapa de desacoplamento inicial das peças (normalmente resolvida por esteira vibratória)
+### Fora de escopo
+- Certificação industrial / normas de segurança
+- Integração com CLP, MES, ERP ou nuvem
+- Reconhecimento de peças arbitrárias ou Deep Learning
+- Sensor óptico, encoder ou sensor de presença dedicado
 
 ## Licença
 
