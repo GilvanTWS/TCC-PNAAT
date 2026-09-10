@@ -1,40 +1,65 @@
+# Entrega 4 — Esboço da Documentação (README.md)
+
+Este documento contém o **esboço** do manual do projeto (README.md) a ser
+adotado no repositório. Diagrama de blocos, lista de dependências e requisitos
+representam **a mesma solução** (a PoC física TRIA).
+
+---
+
+## Proposta de conteúdo para o README.md do repositório
+
 # TRIA - Triagem Visual Integrada de Componentes
 
-Projeto de Conclusão de Curso do programa **PNAAT 2026** (Programa Nacional de Aprendizagem Acelerada em Tecnologia).
+Projeto de Conclusão de Curso do programa **PNAAT 2026** (Programa Nacional de
+Aprendizagem Acelerada em Tecnologia). Equipe **Os guri do pinati**.
 
-## Visão Geral
+PoC física que valida a cadeia: **pré-separação física → esteira → captura →
+classificação → MQTT → atuação do servo → três destinos físicos → registro e
+visualização na stack MING**. A solução ataca o **Cenário 2** dos Cenários:
+triagem de componentes misturados em uma linha de manufatura, em posições
+variadas, em contato ou parcialmente sobrepostas.
 
-O **TRIA** é uma Prova de Conceito (PoC) física que valida experimentalmente a cadeia:
+## Diagrama de blocos preliminar da arquitetura
 
-**pré-separação física → esteira → captura → classificação → MQTT → atuação do servo → três destinos físicos → registro e visualização no MING**
-
-A solução ataca o **Cenário 2** do documento de Cenários: triagem de diferentes componentes misturados em uma linha de manufatura, com peças em posições variadas, em contato ou parcialmente sobrepostas.
-
-### Arquitetura da PoC
+Solucão integrada (IoT + visão computacional). O diagrama identifica os
+elementos de sensoriamento, processamento, conectividade e software, e o fluxo
+entre eles.
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        FLUXO FÍSICO                                 │
-│                                                                     │
-│  [Entrada] → [Pré-separador Vibratório] → [Esteira] → [Câmera]    │
-│       ↓                                                           │
-│  [Raspberry Pi 5 - Classificação]                                  │
-│       ↓                                                           │
-│  [Servo Desviador] → [Saída A] [Saída B] [Saída C]                │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                        FLUXO DE DADOS (MING)                       │
-│                                                                     │
-│  Raspberry Pi 5  →  Mosquitto/MQTT  →  ESP32 (servo + OLED)       │
-│                        ↓                                            │
-│                    Node-RED (validação)                             │
-│                        ↓                                            │
-│                    InfluxDB (série temporal)                        │
-│                        ↓                                            │
-│                    Grafana (dashboard)                              │
-└─────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                          SENSORIAMENTO (entrada)                          │
+│                                                                            │
+│   [Pré-separador vibratório]  [Esteira]  [Câmera CSI V1.3 fixa]          │
+│   (reduz contato/sobreposição)   (transporte)   (captura, fundo fosco)    │
+└───────────────────────────────────┬────────────────────────────────────────┘
+                                    │ quadro (640x480 @ 30 fps)
+┌───────────────────────────────────▼────────────────────────────────────────┐
+│                     PROCESSAMENTO — Visão computacional                    │
+│                     Raspberry Pi 5 (8 GB) · Python 3                       │
+│   Picamera2 (captura) → OpenCV (segmentação → contornos → approxPolyDP     │
+│   → Hough para marca X) → decisão: classe, destino, defeito,               │
+│   instante de atuação                                                      │
+└───────────────────────────────────┬────────────────────────────────────────┘
+                                    │ MQTT publish: tria/triagem, tria/status/pi
+┌───────────────────────────────────▼────────────────────────────────────────┐
+│                      CONECTIVIDADE — Broker Mosquitto                      │
+└──────────────┬────────────────────────────┬────────────────────────────────┘
+               │ subscribe tria/triagem     │ subscribe tria/triagem
+┌──────────────▼──────────────────┐  ┌──────▼───────────────────────────────┐
+│ ATUAÇÃO — IoT (hardware)        │  │ INTEGRAÇÃO E DADOS — software        │
+│ Heltec WiFi LoRa 32 V3 (ESP32-S3)│  │ Stack MING (Docker Compose)          │
+│  Firmware ESP-IDF               │  │  Node-RED (validação + deduplicação) │
+│  Servo → posições A/B/C         │  │   → InfluxDB (série temporal)         │
+│  → saídas A (quadrado), B       │  │   → Grafana (dashboard)               │
+│  (triângulo), C (descarte)      │  │                                       │
+│  OLED + watchdog MQTT           │  │  Publicação: tria/atuador,            │
+└─────────────────────────────────┘  │  tria/status/esp32                     │
+                                     └───────────────────────────────────────┘
 ```
+
+Fluxo físico: entrada → pré-separador → esteira → câmera → desviador (servo) →
+saídas A/B/C.
+Fluxo de dados: Pi → Mosquitto → ESP32 (atuação) + Node-RED → InfluxDB → Grafana.
 
 ### Situação visual e destino
 
@@ -44,87 +69,89 @@ A solução ataca o **Cenário 2** do documento de Cenários: triagem de diferen
 | TRIÂNGULO | Peça normal | Saída B - Triângulo |
 | QUADRADO COM X | Peça defeituosa | Saída C - Descarte |
 
-## Estrutura do Repositório
+## Dependências do projeto
 
-```
-TCC-PNAAT/
-├── docs/                          Documentação acadêmica
-│   ├── TRIA_Entrega_1_Levantamento_de_Requisitos_PoC_Fisica.pdf
-│   ├── Cenários.pdf
-│   └── Apostila ... PNAAT 2026.pdf
-│
-├── pi/                            Código Python (visão computacional - Raspberry Pi)
-│   ├── main.py                    Pipeline: Picamera2, ROI, detecção de passagem, MQTT
-│   ├── classifier.py              OpenCV: contornos, vértices, detecção de X
-│   ├── mqtt_publisher.py          Publica decisões e status nos tópicos MQTT
-│   ├── config.py                  Configurações centralizadas
-│   ├── requirements.txt           Dependências Python
-│   └── tests/
-│       └── test_classifier.py     Testes locais (sem hardware)
-│
-├── tria-esp/                      Firmware ESP32 do nó de atuação (ESP-IDF)
-│   ├── components/servo/          Componente do servo (base: PoC do Claylton)
-│   ├── main/
-│   │   ├── main.c                 MQTT, servo (A/B/C), OLED, watchdog
-│   │   ├── Kconfig.projbuild      Configuração via menuconfig
-│   │   └── idf_component.yml      Dependências (esp-mqtt, u8g2)
-│   ├── LIGACAO_MICRO_SERVO.md     Guia de ligação do micro servo ao ESP32
-│   └── .devcontainer/             Ambiente de desenvolvimento
-│
-├── ming/                          Stack MING (Docker Compose)
-│   ├── docker-compose.yml         Mosquitto, Node-RED, InfluxDB, Grafana
-│   ├── mosquitto/
-│   │   └── mosquitto.conf         Configuração do broker MQTT
-│   ├── nodered/
-│   │   └── flows.json             Fluxo de validação e deduplicação
-│   └── grafana/
-│       └── datasources/
-│           └── influxdb.yml       DataSource InfluxDB (auto-provisioning)
-│
-├── .gitignore
-├── README.md
-└── LICENSE
-```
+### Hardware (Kit Maker + bancada)
 
-## Componentes
+| Recurso | Função |
+|---------|--------|
+| Raspberry Pi 5, 8 GB | Captura e processamento; decide e publica MQTT |
+| Câmera CSI V1.3 (5 MP) + cabo adaptador | Captura da região de inspeção |
+| Heltec WiFi LoRa 32 V3 (ESP32-S3) + OLED | Nó de atuação: servo, OLED, MQTT |
+| Esteira (laboratório) | Transporte da câmera ao desviador |
+| Micro servo (SG90 ou similar, 5 V, ≥1 A) | Aleta desviadora de 3 posições |
+| Motor vibratório (pré-separação) | Reduz contato/sobreposição antes da esteira |
+| Desviador + 3 calhas | Encaminhamento às saídas A/B/C |
+| Peças de ensaio (quadrado, triângulo, quadrado com X) | Amostras reproduzíveis |
+| Fonte 5 V externa, microSD 128 GB, suporte e iluminação/fundo fosco | Apoio de bancada |
 
-### Raspberry Pi (visão computacional)
+### Software e bibliotecas (Pi — `pi/`)
 
-- **main.py** - Pipeline principal (seção 2.1 do levantamento):
-  - Captura ao vivo com **Picamera2** (câmera CSI fixa)
-  - Detecta quando uma nova peça entra na **ROI**, sem sensor de presença
-  - Classifica cada peça **uma única vez** antes de liberar a próxima (RNF05)
-  - Publica a decisão no MQTT e calcula o instante de atuação (RNF01)
-  - Modo `--imagem` para simulação/teste sem câmera
-- **classifier.py** - Classifica as 3 situações visuais usando OpenCV:
-  - Detecção de contornos e vértices (approxPolyDP)
-  - Hough Line Transform para detectar a marca X contrastante
-  - Reanálise automática com parâmetros alternativos
-- **mqtt_publisher.py** - Publica nos tópicos MQTT:
-  - `tria/triagem` - resultado da inspeção (payload mínimo: id_evento, horario, classe, destino, defeito)
-  - `tria/status/pi` - disponibilidade do processo de visão
-- **config.py** - Configurações de tópicos, parâmetros, calibração
+| Dependência | Uso |
+|-------------|-----|
+| Python 3 | Linguagem do pipeline |
+| opencv-python ≥ 4.8 | Segmentação, contornos, approxPolyDP, Canny, Hough |
+| numpy ≥ 1.24 | Cálculos geométricos e vetoriais |
+| paho-mqtt ≥ 2.0 | Cliente MQTT (publicação de eventos) |
+| picamera2 ≥ 0.3.12 | Interface com a câmera CSI |
 
-### ESP32 (nó de atuação - Heltec WiFi LoRa 32 V3) — `tria-esp/`
+### Firmware (ESP32 — `tria-esp/`)
 
-Firmware ESP-IDF construído sobre a **PoC do servo do Claylton** (`components/servo`), expandido para:
+| Dependência | Uso |
+|-------------|-----|
+| ESP-IDF (esp32s3) | Framework do firmware |
+| esp-mqtt (componente) | Cliente MQTT no ESP32 |
+| u8g2 (componente) | Driver do OLED SSD1306 |
+| cJSON | Parse do payload MQTT |
+| Componente `servo/` | Controle PWM do servomotor |
 
-- Assina `tria/triagem` e move o servo para a posição calibrada (A/B/C)
-- Exibe classe, destino e estado no OLED integrado
-- Publica confirmação em `tria/atuador` (RF05) e estado em `tria/status/esp32`
-- **Watchdog de comunicação** (RNF04): Last Will + OLED indicam indisponibilidade se sem mensagem por >15s
-- Configurável via `idf.py menuconfig` (Wi-Fi, broker, ângulos A/B/C, pinos)
+### Stack MING (integração e dados — `ming/`)
 
-**Guia de ligação:** [`tria-esp/LIGACAO_MICRO_SERVO.md`](tria-esp/LIGACAO_MICRO_SERVO.md) — onde conectar cada fio do micro servo (GND, VCC e sinal PWM no `GPIO 47`).
+| Dependência | Uso |
+|-------------|-----|
+| Docker + Docker Compose | Orquestração reprodutível da stack |
+| eclipse-mosquitto 2.0 | Broker MQTT local (1883/9001) |
+| nodered/node-red | Validação, transformação e deduplicação |
+| influxdb 2.7 | Banco de série temporal (bucket `tria_events`) |
+| grafana/grafana + data source InfluxDB | Dashboard (totais, classes, defeitos, histórico) |
 
-> Os guias de ligação dos componentes serão mantidos em cada pasta do projeto e referenciados neste README.
+### Plataformas e ferramentas
 
-### Stack MING (Docker)
+| Recurso | Uso |
+|---------|-----|
+| Raspberry Pi OS 64 bits | Sistema do Pi |
+| Git + GitHub | Versionamento e repositório |
+| OBS Studio | Gravação do vídeo pitch (Entrega 3) |
+| VS Code + Dev Container `tria-esp/.devcontainer` | Desenvolvimento do firmware |
+| Terminal `mosquitto_sub` | Inspeção dos tópicos em tempo real |
 
-- **Mosquitto** - Broker MQTT local (portas 1883/9001 WebSocket)
-- **Node-RED** - Valida campos, evita reprocessamento de IDs conhecidos, grava no InfluxDB
-- **InfluxDB** - Armazena cada evento de triagem como registro temporal
-- **Grafana** - Dashboard: totais, classes, defeitos, destinos, histórico, estado de comunicação
+## Requisitos e critérios de aceite (mesma solução)
+
+### Funcionais
+
+| ID | Requisito | Critério |
+|----|-----------|----------|
+| RF01 | Detectar passagem e capturar | ≥ 19/20 ciclos válidos, 1 evento por peça |
+| RF02 | Classificar quadrado e triângulo | ≥ 18/20 para cada classe |
+| RF03 | Identificar quadrado com X | ≥ 18/20 como defeito |
+| RF04 | Comunicar via MQTT | ≥ 29/30 eventos consistentes |
+| RF05 | Posicionar servo corretamente | ≥ 27/30 comandos |
+| RF06 | Encaminhar fisicamente | ≥ 27/30 peças na saída correta |
+| RF07 | Pré-separação por vibração | ≥ 8/10 chegadas separadas |
+| RF08 | Registrar no InfluxDB | 30/30 registros sem perda |
+| RF09 | Apresentar no Grafana | Painéis conferem com InfluxDB |
+| RF10 | Fluxo completo | ≥ 13/15 ciclos completos |
+
+### Não-funcionais
+
+| ID | Requisito | Critério |
+|----|-----------|----------|
+| RNF01 | Preparar atuação no prazo | Servo estabiliza com ≥ 0,3 s de margem |
+| RNF02 | Consistência da comunicação | ≥ 29/30 entregas válidas |
+| RNF03 | Operar continuamente | 15 min ou 30 peças sem reinício |
+| RNF04 | Recuperar comunicação | Reconectar em ≤ 30 s, sem comando antigo |
+| RNF05 | Não duplicar contagens | 30 IDs únicos, sem duplicatas |
+| RNF06 | Funcionar localmente | 15 min sem Internet |
 
 ## Tópicos MQTT
 
@@ -133,116 +160,62 @@ Firmware ESP-IDF construído sobre a **PoC do servo do Claylton** (`components/s
 | `tria/triagem` | Raspberry Pi | ESP32, Node-RED | Resultado da inspeção e destino |
 | `tria/status/pi` | Raspberry Pi | Node-RED | Disponibilidade do processo de visão |
 | `tria/status/esp32` | ESP32 | Node-RED, Pi (opcional) | Conexão do nó de atuação |
-| `tria/atuador` | ESP32 | Raspberry Pi, Node-RED | Confirmação vinculada ao id_evento |
+| `tria/atuador` | ESP32 | Pi, Node-RED | Confirmação vinculada ao id_evento |
 
-## Payload MQTT (tria/triagem)
-
-```json
-{
-  "id_evento": "pi-abc123def456",
-  "horario": "2026-09-08T10:30:00",
-  "classe": "QUADRADO",
-  "destino": "A",
-  "defeito": false,
-  "instante_atuacao": 3.3,
-  "tempo_processamento_ms": 45
-}
-```
-
-## Requisitos e Critérios de Aceite
-
-### Funcionais
-
-| ID | Requisito | Critério |
-|----|-----------|----------|
-| RF01 | Detectar passagem e capturar | 19/20 ciclos válidos |
-| RF02 | Classificar quadrado e triângulo | >= 18/20 para cada classe |
-| RF03 | Identificar quadrado com X | >= 18/20 como defeito |
-| RF04 | Comunicar via MQTT | >= 29/30 eventos consistentes |
-| RF05 | Posicionar servo corretamente | >= 27/30 comandos |
-| RF06 | Encaminhar fisicamente | >= 27/30 peças na saída correta |
-| RF07 | Pré-separação por vibração | >= 8/10 chegadas separadas |
-| RF08 | Registrar no InfluxDB | 30/30 registros sem perda |
-| RF09 | Apresentar no Grafana | Painéis conferem com InfluxDB |
-| RF10 | Fluxo completo | >= 13/15 ciclos completos |
-
-### Não-funcionais
-
-| ID | Requisito | Critério |
-|----|-----------|----------|
-| RNF01 | Preparar atuação no prazo | Servo estabiliza com >= 0,3s margem |
-| RNF02 | Consistência da comunicação | >= 29/30 entregas válidas |
-| RNF03 | Operar continuamente | 15 minutos ou 30 peças sem reinício |
-| RNF04 | Recuperar comunicação | Reconectar em <= 30s, sem executar comando antigo |
-| RNF05 | Não duplicar contagens | 30 IDs únicos, sem duplicatas |
-| RNF06 | Funcionar localmente | 15 minutos sem Internet |
-
-## Rodar
-
-### 1. Classificador (Raspberry Pi)
+## Como rodar
 
 ```bash
-cd pi
-python -m venv venv
-source venv/bin/activate
+# 1. Classificador (Pi)
+cd pi && python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-python tests/test_classifier.py        # testes locais
-python main.py                         # captura ao vivo (Picamera2)
-python main.py --imagem teste.jpg      # simulação sem câmera
-```
+python tests/test_classifier.py      # testes locais
+python main.py                       # captura ao vivo
+python main.py --imagem teste.jpg    # simulação sem câmera
 
-### 2. Stack MING
+# 2. Stack MING
+cd ming && docker compose up -d      # Grafana :3000 · Node-RED :1880 · MQTT :1883
 
-```bash
-cd ming
-docker compose up -d
-# Verificar: http://localhost:3000 (Grafana)
-# Verificar: http://localhost:1880 (Node-RED)
-```
-
-### 3. Firmware ESP32 (tria-esp)
-
-```bash
+# 3. Firmware ESP32
 cd tria-esp
-# Instalar ESP-IDF (https://docs.espressif.com/projects/esp-idf)
 idf.py set-target esp32s3
-idf.py menuconfig    # TRIA: Wi-Fi, broker MQTT, ângulos A/B/C, pinos
-idf.py build
-idf.py -p /dev/ttyUSB0 flash monitor
+idf.py menuconfig                    # Wi-Fi, broker, ângulos A/B/C, pinos
+idf.py build && idf.py -p /dev/ttyUSB0 flash monitor
 ```
 
-## Tecnologias
+## Estrutura do repositório
 
-| Categoria | Tecnologia | Uso |
-|-----------|------------|-----|
-| Computador single-board | Raspberry Pi 5 (8 GB) | Captura e processamento |
-| Câmera | CSI Camera V1.3 (5 MP) | Captura da região de inspeção |
-| Visão computacional | OpenCV (Python) | Detecção de contornos, análise de forma, Hough |
-| Captura de imagem | Picamera2 (Python) | Interface com câmera CSI |
-| Nó de atuação | ESP32-S3 (Heltec WiFi LoRa 32 V3) | Servo, OLED, MQTT |
-| Messaging | MQTT (Mosquitto local) | Comunicação Pi ↔ ESP32 ↔ Node-RED |
-| Integração | Node-RED | Valiação, transformação, deduplicação |
-| Banco temporal | InfluxDB | Série temporal de eventos |
-| Dashboard | Grafana | Visualização de indicadores |
-| Orquestração | Docker Compose | Stack MING reproduzível |
+```
+TCC-PNAAT/
+├── docs/           (documentação acadêmica e entregas)
+├── pi/             (visão computacional - Raspberry Pi)
+│   ├── main.py     pipeline: Picamera2, ROI, detecção de passagem, MQTT
+│   ├── classifier.py  OpenCV: contornos, vértices, Hough (marca X)
+│   ├── mqtt_publisher.py  tópicos tria/* 
+│   ├── config.py   configurações centralizadas
+│   ├── requirements.txt
+│   └── tests/      testes locais (sem hardware)
+├── tria-esp/       (firmware ESP32 - nó de atuação)
+│   ├── main/main.c MQTT, servo A/B/C, OLED, watchdog
+│   ├── components/servo/  controle PWM do servo
+│   └── LIGACAO_MICRO_SERVO.md
+├── ming/           (stack MING - Docker Compose)
+│   ├── docker-compose.yml
+│   ├── mosquitto/mosquitto.conf
+│   ├── nodered/flows.json
+│   └── grafana/datasources/influxdb.yml
+├── README.md
+└── LICENSE
+```
 
-## Escopo
+---
 
-### Incluído
-- Pré-separação vibratória (mecânica a definir)
-- Classificação de 3 situações visuais com OpenCV
-- Deteção de marca X contrastante (defeito)
-- Comunicação MQTT local entre Pi, ESP32 e Node-RED
-- Atuação com servo de 3 posições
-- Dashboard com totais, classes, defeitos e histórico
-- Registro temporal de todos os eventos
+## Checklist de conformidade da Entrega 4
 
-### Fora de escopo
-- Certificação industrial / normas de segurança
-- Integração com CLP, MES, ERP ou nuvem
-- Reconhecimento de peças arbitrárias ou Deep Learning
-- Sensor óptico, encoder ou sensor de presença dedicado
-
-## Licença
-
-[MIT License](LICENSE) - Copyright 2026 GilvanTWS and Claylton-Muniz
+- [ ] Repositório GitHub criado e versionado (repositório atual `TCC-PNAAT`)
+- [ ] README.md contém o diagrama de blocos preliminar (sensoriamento,
+      processamento, conectividade, software; entrada/processamento/resultado
+      da visão; relação IoT + visão computacional)
+- [ ] README.md contém a lista de dependências (bibliotecas, plataformas,
+      ferramentas, recursos)
+- [ ] Diagrama, dependências e requisitos descrevem a mesma solução (TRIA)
+- [ ] Link do diagrama e das entregas consistentes com os documentos em `docs/`
