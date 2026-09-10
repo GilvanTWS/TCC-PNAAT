@@ -39,3 +39,10 @@ mosquitto.db
 
 # Imagens anotadas (geradas pelo teste)
 pi/tests/images/anotada_*
+
+# Docker (stack MING) - dados de runtime
+ming/nodered/data/
+ming/mosquitto/data/
+ming/mosquitto/log/
+ming/influxdb_data/
+ming/grafana_data/

@@ -1,81 +1,71 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/gpio.h"
 #include "esp_check.h"
 #include "esp_log.h"
-#include "servo.h"
 
-#define SERVO_GPIO 47
-#define BUTTON_GPIO GPIO_NUM_0
-#define VIBRATION_GPIO GPIO_NUM_7
-#define BUTTON_DEBOUNCE_MS 30
+#include "tria_actuator.h"
+#include "tria_display.h"
+#include "tria_network.h"
+#include "vibration.h"
 
-static const char *TAG = "servo_test";
+static const char *TAG = "tria_esp";
 
-static void vibration_task(void *arg)
+static esp_err_t processar_decisao(const tria_decision_t *decisao, void *context)
 {
-    int last_reading = gpio_get_level(BUTTON_GPIO);
-    int stable_state = last_reading;
-    int stable_time_ms = 0;
+    ESP_RETURN_ON_ERROR(tria_actuator_move(decisao->destino),
+                        TAG, "Falha ao posicionar atuador");
+    tria_display_show(decisao->classe, decisao->destino, "OK");
+    return ESP_OK;
+}
 
-    while (true) {
-        const int reading = gpio_get_level(BUTTON_GPIO);
-
-        if (reading != last_reading) {
-            last_reading = reading;
-            stable_time_ms = 0;
-        } else if (stable_time_ms < BUTTON_DEBOUNCE_MS) {
-            stable_time_ms += 10;
-
-            if (stable_time_ms >= BUTTON_DEBOUNCE_MS && reading != stable_state) {
-                stable_state = reading;
-
-                // O botao PRG e ativo em nivel baixo.
-                const bool vibration_enabled = stable_state == 0;
-                gpio_set_level(VIBRATION_GPIO, vibration_enabled);
-                ESP_LOGI(TAG, "Vibrador %s", vibration_enabled ? "ligado" : "desligado");
-            }
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(10));
+static void atualizar_estado_rede(tria_network_state_t estado, void *context)
+{
+    switch (estado) {
+    case TRIA_NETWORK_CONNECTED:
+        tria_display_show("TRIA ATIVO", "Aguardando", "decisao");
+        break;
+    case TRIA_NETWORK_TIMEOUT:
+        tria_display_show("S/ COMUNICACAO", "Verificando", "rede...");
+        break;
+    case TRIA_NETWORK_DISCONNECTED:
+        tria_display_show("S/ COMUNICACAO", "Reconectando", "MQTT...");
+        break;
     }
 }
 
 void app_main(void)
 {
-    const gpio_config_t button_config = {
-        .pin_bit_mask = 1ULL << BUTTON_GPIO,
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
+    const tria_actuator_config_t actuator_config = {
+        .servo_gpio = CONFIG_TRIA_SERVO_GPIO,
+        .angle_a = CONFIG_TRIA_ANGULO_A,
+        .angle_b = CONFIG_TRIA_ANGULO_B,
+        .angle_c = CONFIG_TRIA_ANGULO_C,
+        .settling_time_ms = CONFIG_TRIA_TEMPO_SERVO_MS,
     };
-    ESP_ERROR_CHECK(gpio_config(&button_config));
-
-    const gpio_config_t vibration_config = {
-        .pin_bit_mask = 1ULL << VIBRATION_GPIO,
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
+    const vibration_config_t vibration_config = {
+        .button_gpio = CONFIG_TRIA_BUTTON_GPIO,
+        .motor_gpio = CONFIG_TRIA_VIBRATION_GPIO,
+        .debounce_ms = CONFIG_TRIA_BUTTON_DEBOUNCE_MS,
     };
-    ESP_ERROR_CHECK(gpio_config(&vibration_config));
-    ESP_ERROR_CHECK(gpio_set_level(VIBRATION_GPIO, 0));
+    const tria_network_config_t network_config = {
+        .wifi_ssid = CONFIG_TRIA_WIFI_SSID,
+        .wifi_password = CONFIG_TRIA_WIFI_PASSWORD,
+        .mqtt_broker_uri = CONFIG_TRIA_MQTT_BROKER_URI,
+        .client_id = CONFIG_TRIA_ESP32_ID,
+        .watchdog_timeout_ms = CONFIG_TRIA_WATCHDOG_TIMEOUT_S * 1000,
+        .status_interval_ms = CONFIG_TRIA_STATUS_INTERVAL_S * 1000,
+        .decision_handler = processar_decisao,
+        .state_handler = atualizar_estado_rede,
+    };
 
-    ESP_ERROR_CHECK(xTaskCreate(vibration_task, "vibration", 2048, NULL, 5, NULL) == pdPASS
-                        ? ESP_OK
-                        : ESP_ERR_NO_MEM);
+    ESP_LOGI(TAG, "TRIA - No de atuacao iniciando...");
+    ESP_ERROR_CHECK(tria_display_init(CONFIG_TRIA_OLED_SDA_GPIO,
+                                      CONFIG_TRIA_OLED_SCL_GPIO,
+                                      CONFIG_TRIA_OLED_RESET_GPIO,
+                                      CONFIG_TRIA_OLED_POWER_GPIO));
+    tria_display_show("TRIA - ESP32", "Iniciando...", "");
 
-    // Servo motor
-    ESP_ERROR_CHECK(servo_init(SERVO_GPIO));
-    const int angles[] = {0, 45, 90, 180}; // angulos para mover o servo
+    ESP_ERROR_CHECK(tria_actuator_start(&actuator_config));
+    ESP_ERROR_CHECK(vibration_start(&vibration_config));
 
-    while (true) {
-        // loop que move o servo para os angulos definidos
-        for (int i = 0; i < 4; i++) {
-            ESP_LOGI(TAG, "Movendo servo para %d graus", angles[i]);
-            ESP_ERROR_CHECK(servo_set_angle(angles[i]));
-            vTaskDelay(pdMS_TO_TICKS(1000));
-        }
-    }
+    tria_display_show("TRIA - ESP32", "Conectando", "MQTT...");
+    ESP_ERROR_CHECK(tria_network_start(&network_config));
 }

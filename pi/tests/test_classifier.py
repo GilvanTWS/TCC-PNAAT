@@ -1,5 +1,6 @@
 """
-Teste do classificador com reanálise automática
+Teste do classificador com as 3 classes da PoC Física
+QUADRADO, TRIÂNGULO e QUADRADO COM X
 """
 
 import os
@@ -8,28 +9,20 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import classifier
-from classifier import classify_with_confidence, annotate_image
+from classifier import classify_with_confidence, annotate_image, get_destino, detect_mark_x
 
 
 IMAGES_DIR = os.path.join(os.path.dirname(__file__), "images")
 
-ESPERADO = {
-    "c1": "A", "c2": "A", "c3": "A",
-    "q1": "B", "q2": "B", "q3": "B",
-    "t1": "C", "t2": "C", "t3": "C",
-}
-
 
 def testar_classificador():
-    """Testa todas as imagens com reanálise."""
+    """Testa todas as imagens disponíveis."""
     print("=" * 70)
-    print("TESTE DO CLASSIFICADOR COM REANÁLISE - TRIA")
+    print("TESTE DO CLASSIFICADOR - TRIA (PoC Física)")
+    print("Classes: QUADRADO, TRIÂNGULO, QUADRADO COM X")
     print("=" * 70)
 
-    acertos = 0
     total = 0
-    descartados = 0
-    revisados = 0
 
     for filename in sorted(os.listdir(IMAGES_DIR)):
         if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
@@ -37,92 +30,70 @@ def testar_classificador():
         if filename.startswith("anotada_"):
             continue
 
-        name = os.path.splitext(filename)[0]
         path = os.path.join(IMAGES_DIR, filename)
 
-        resultado = classify_with_confidence(path, primeira_passagem=True)
-        esperado = ESPERADO.get(name, "?")
+        resultado = classify_with_confidence(path)
 
         total += 1
         classe = resultado.get("classe", "N/A")
-        destino = resultado.get("destino", "N/A")
+        destino = get_destino(classe)
+        confianca = resultado.get("confianca", 0)
         status = resultado.get("status", "N/A")
-        tentativas = len(resultado.get("historico", []))
-
-        if status == "discard":
-            descartados += 1
-            status_icon = "DESCARTADO"
-        elif status == "review":
-            revisados += 1
-            status_icon = "REVISÃO"
-        elif classe == esperado and destino == esperado:
-            acertos += 1
-            status_icon = "OK"
-        else:
-            status_icon = "FALHOU"
 
         print(f"\n{filename}:")
-        print(f"  Esperado: {esperado}")
-        print(f"  Resultado: {classe} (destino {destino})")
-        print(f"  Circularidade: {resultado.get('circularidade', 'N/A')}")
+        print(f"  Classe: {classe}")
+        print(f"  Destino: {destino}")
+        print(f"  Confiança: {confianca}")
         print(f"  Vértices: {resultado.get('vertices', 'N/A')}")
-        print(f"  Tentativas: {tentativas}")
-        print(f"  Status: {status_icon}")
+        print(f"  Status: {status}")
 
+        # Gerar imagem anotada
         output_path = os.path.join(IMAGES_DIR, f"anotada_{filename}")
         annotate_image(path, output_path)
 
     print("\n" + "=" * 70)
-    print(f"RESULTADO FINAL: {acertos}/{total} acertos")
-    print(f"Descartados: {descartados}")
-    print(f"Revisados: {revisados}")
+    print(f"TOTAL CLASSIFICADO: {total} imagens")
+    print("""
+Validação com peças reais (RF02/RF03):
+- 20 apresentações de QUADRADO -> meta >= 18 acertos
+- 20 apresentações de TRIÂNGULO -> meta >= 18 acertos
+- 20 apresentações de QUADRADO COM X -> meta >= 18 reconhecimentos
+    """)
     print("=" * 70)
 
 
-def testar_revisao():
-    """Força baixa confiança e verifica o fluxo R na 1ª passagem e D na reanálise."""
+def testar_fluxos():
+    """Testa as funções auxiliares: get_destino e detecção de X."""
     print("=" * 70)
-    print("TESTE DO FLUXO DE REVISÃO - TRIA")
+    print("TESTE DE FLUXOS - TRIA")
     print("=" * 70)
 
-    limiar_original = classifier.LIMIAR_CONFIANCA
-    classifier.LIMIAR_CONFIANCA = 1.5
+    # Teste de destinos
+    ok_destinos = {
+        "QUADRADO": "A",
+        "TRIÂNGULO": "B",
+        "QUADRADO_COM_X": "C",
+    }
+    for classe, destino_esperado in ok_destinos.items():
+        destino = get_destino(classe)
+        ok = destino == destino_esperado
+        print(f"  get_destino({classe}) = {destino} {'OK' if ok else 'FALHOU'}")
+        if not ok:
+            return False
 
-    path = os.path.join(IMAGES_DIR, "c1.png")
-    if not os.path.exists(path):
-        path = os.path.join(IMAGES_DIR, "c1.jpeg")
+    print("  Destinos: OK")
 
-    try:
-        resultado_primeira = classify_with_confidence(path, primeira_passagem=True)
-        ok_primeira = (
-            resultado_primeira.get("destino") == "R"
-            and resultado_primeira.get("status") == "review"
-        )
-        print(f"\nPrimeira passagem (ambígua):")
-        print(f"  Status: {resultado_primeira.get('status')}")
-        print(f"  Destino: {resultado_primeira.get('destino')}")
-        print(f"  Motivo: {resultado_primeira.get('motivo')}")
-        print(f"  {'OK' if ok_primeira else 'FALHOU'}")
+    # Verificar payload mqtt usa defeito corretamente
+    import config
+    assert config.TOPICO_TRIAGEM == "tria/triagem"
+    assert config.TOPICO_STATUS_PI == "tria/status/pi"
+    assert config.TOPICO_STATUS_ESP32 == "tria/status/esp32"
+    assert config.TOPICO_ATUADOR == "tria/atuador"
+    print("  Tópicos MQTT: OK")
 
-        resultado_reanalise = classify_with_confidence(path, primeira_passagem=False)
-        ok_reanalise = (
-            resultado_reanalise.get("destino") == "D"
-            and resultado_reanalise.get("status") == "discard"
-        )
-        print(f"\nReanálise (ainda ambígua):")
-        print(f"  Status: {resultado_reanalise.get('status')}")
-        print(f"  Destino: {resultado_reanalise.get('destino')}")
-        print(f"  Motivo: {resultado_reanalise.get('motivo')}")
-        print(f"  {'OK' if ok_reanalise else 'FALHOU'}")
-
-        sucesso = ok_primeira and ok_reanalise
-        print("\n" + "=" * 70)
-        print(f"FLUXO DE REVISÃO: {'OK' if sucesso else 'FALHOU'}")
-        print("=" * 70)
-    finally:
-        classifier.LIMIAR_CONFIANCA = limiar_original
+    return True
 
 
 if __name__ == "__main__":
     testar_classificador()
-    testar_revisao()
+    testar_fluxos()

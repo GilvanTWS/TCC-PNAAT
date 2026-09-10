@@ -1,0 +1,92 @@
+version: "3.8"
+
+# Stack MING - PoC Física Tria
+# Mosquitto, Node-RED, InfluxDB, Grafana
+# Uso: docker compose up -d
+
+services:
+  # ===== Mosquitto - Broker MQTT =====
+  # Recebe a decisão do Pi e distribui ao ESP32 e ao Node-RED
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: tria-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"  # WebSocket (para o Node-RED e debug)
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - tria_net
+
+  # ===== Node-RED - Fluxo de dados =====
+  # Assina eventos MQTT, valida campos, deduplica e escreve no InfluxDB
+  nodered:
+    image: nodered/node-red:latest
+    container_name: tria-nodered
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    environment:
+      - TZ=America/Sao_Paulo
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./nodered/data:/data
+      - ./nodered/flows.json:/data/flows.json:ro  # fluxo versionado
+    networks:
+      - tria_net
+
+  # ===== InfluxDB - Banco de séries temporais =====
+  # Armazena cada evento de triagem como registro temporal
+  influxdb:
+    image: influxdb:2.7
+    container_name: tria-influxdb
+    restart: unless-stopped
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=admin123456
+      - DOCKER_INFLUXDB_INIT_ORG=tria
+      - DOCKER_INFLUXDB_INIT_BUCKET=tria_events
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=tria-token-2026
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    networks:
+      - tria_net
+
+  # ===== Grafana - Dashboard =====
+  # Consulta o InfluxDB e exibe indicadores
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tria-grafana
+    restart: unless-stopped
+    depends_on:
+      - influxdb
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123456
+      # Auto-provision Data Source InfluxDB
+      - GF_INSTALL_PLUGINS=grafana-influx-datasource
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+    networks:
+      - tria_net
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  influxdb_data:
+  grafana_data:
+
+networks:
+  tria_net:
+    driver: bridge

@@ -1,0 +1,3 @@
+dependencies:
+  idf: ">=5.0"
+  nixy4/u8g2: "^0.1.4"
