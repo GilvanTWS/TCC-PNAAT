@@ -41,7 +41,8 @@ mosquitto.db
 pi/tests/images/anotada_*
 
 # Docker (stack MING) - dados de runtime
-ming/nodered/data/
+ming/nodered/data/*
+!ming/nodered/data/.gitkeep
 ming/mosquitto/data/
 ming/mosquitto/log/
 ming/influxdb_data/
