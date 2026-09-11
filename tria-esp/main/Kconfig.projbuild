@@ -18,6 +18,31 @@ menu "TRIA - Rede"
 
 endmenu
 
+menu "TRIA - Vibracao"
+
+    config TRIA_BUTTON_GPIO
+        int "GPIO do botao PRG"
+        default 0
+
+    config TRIA_VIBRATION_GPIO
+        int "GPIO do motor vibratorio"
+        default 7
+
+    config TRIA_BUTTON_DEBOUNCE_MS
+        int "Tempo de debounce do botao (ms)"
+        range 1 1000
+        default 30
+
+endmenu
+
+menu "TRIA - Esteira"
+
+    config TRIA_CONVEYOR_GPIO
+        int "GPIO da esteira"
+        default 6
+
+endmenu
+
 menu "TRIA - Atuação (servo)"
 
     config TRIA_SERVO_GPIO
@@ -46,11 +71,19 @@ menu "TRIA - OLED"
 
     config TRIA_OLED_SDA_GPIO
         int "GPIO SDA do OLED"
-        default 8
+        default 17
 
     config TRIA_OLED_SCL_GPIO
         int "GPIO SCL do OLED"
-        default 9
+        default 18
+
+    config TRIA_OLED_RESET_GPIO
+        int "GPIO de reset do OLED"
+        default 21
+
+    config TRIA_OLED_POWER_GPIO
+        int "GPIO de controle Vext do OLED (ativo em nível baixo)"
+        default 36
 
 endmenu
 

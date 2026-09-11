@@ -1,4 +1,3 @@
 dependencies:
   idf: ">=5.0"
-  espressif/esp-mqtt: "^1.5.5"
-  olikraus/u8g2: "^2.35.0"
+  nixy4/u8g2: "^0.1.4"
