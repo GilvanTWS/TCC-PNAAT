@@ -28,41 +28,27 @@ DESTINOS = {
     "C": "Saída C - Descarte",
 }
 
-# Parâmetros de classificação
-LIMIAR_CONFIANCA = 0.7
+# Compatibilidade com a função auxiliar detect_contours
 LIMIAR_AREA_MINIMA = 500
-LIMIAR_CIRCULARIDADE = 0.7
-MAX_TENTATIVAS = 3
 
-# Classificação pela marca interna (peça MDF quadrada + desenho central)
-# Contorno "pai" = a peça de MDF (sempre quadrado), "filho" = a marca desenhada.
-LIMIAR_AREA_PARENTE = 10000      # área mínima (px²) do contorno pai, no frame redimensionado
-LIMIAR_AREA_MARCA = 200          # área mínima (px²) de um contorno filho (marca)
-RAZAO_AREA_MARCA_MIN = 0.005     # marca deve ocupar ao menos 0,5% da área do pai
-RAZAO_AREA_MARCA_MAX = 0.9       # marca pode ocupar até 90% da área do pai
-ASPECTO_PARENTE = (0.4, 2.5)     # peça é quadrada (tolerância de perspectiva)
-TAMANHO_CLASSIFICACAO = (640, 480)  # redimensiona fotos grandes antes de classificar
-
-# Morfologia: engrossa linhas finas da gravação (0 = desligado)
-DILATACAO_MORFOLOGICA = 0
-KERNEL_DILATACAO = 3
-
-# ROI fixo para remover barras da estrutura (esteira) no frame 640x480.
-# Formato (x1, y1, x2, y2). (0, 0, 0, 0) = desligado.
-# Calibrar com a câmera fixa da montagem; desligado nas fotos de teste
-# (os recortes têm enquadramentos variados e um corte fixo cortaria a peça).
-ROI_ESTRUTURA = (0, 0, 0, 0)
-
-# Parâmetros de reanálise (Frames 0 = Otsu)
-PARAMETROS_REANALISE = [
-    {"binarizacao": 0, "epsilon_ratio": 0.04},
-    {"binarizacao": 200, "epsilon_ratio": 0.04},
-    {"binarizacao": 100, "epsilon_ratio": 0.06},
-]
+# Segmentação da placa de MDF. A placa é localizada pela sua faixa de cor
+# (marrom/bege), corrigida por perspectiva e só depois a marca é analisada.
+HSV_MDF_MIN = (5, 30, 35)
+HSV_MDF_MAX = (40, 230, 245)
+AREA_PECA_FRAME_MIN = 0.008       # 0,8% da ROI
+AREA_PECA_FRAME_MAX = 0.85        # aceita peça próxima sem selecionar o fundo
+ASPECTO_PECA_MAX = 2.4
+PREENCHIMENTO_PECA_MIN = 0.45
+TAMANHO_PECA_NORMALIZADA = 400
+TAMANHO_MAX_PROCESSAMENTO = 900
+MARGEM_MARCA = 0.15               # ignora 15% das bordas da placa
+AREA_MARCA_NORMALIZADA_MIN = 0.015
 
 # Câmera
 RESOLUCAO = (640, 480)
 FRAMERATE = 30
+FRAMES_CONFIRMAR_PRESENCA = 3
+FRAMES_CONFIRMAR_AUSENCIA = 3
 
 # Calibração do desviador (ângulos em graus - ajustar na montagem)
 ANGULOS_DESVIADOR = {

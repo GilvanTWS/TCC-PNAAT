@@ -1,99 +1,83 @@
-"""
-Teste do classificador com as 3 classes da PoC Física
-QUADRADO, TRIÂNGULO e QUADRADO COM X
-"""
+"""Testes reais do classificador e do fluxo usado pelo main.py."""
 
-import os
+from pathlib import Path
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import cv2
+import numpy as np
 
-import classifier
-from classifier import classify_with_confidence, annotate_image, get_destino, detect_mark_x
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+IMAGES_DIR = Path(__file__).resolve().parent / "images"
+sys.path.insert(0, str(PROJECT_ROOT))
 
-
-IMAGES_DIR = os.path.join(os.path.dirname(__file__), "images")
-
-
-def testar_classificador():
-    """Testa todas as imagens disponíveis."""
-    print("=" * 70)
-    print("TESTE DO CLASSIFICADOR - TRIA (PoC Física)")
-    print("Classes: QUADRADO, TRIÂNGULO, QUADRADO COM X")
-    print("=" * 70)
-
-    total = 0
-
-    for filename in sorted(os.listdir(IMAGES_DIR)):
-        if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-            continue
-        if filename.startswith("anotada_"):
-            continue
-
-        path = os.path.join(IMAGES_DIR, filename)
-
-        resultado = classify_with_confidence(path)
-
-        total += 1
-        classe = resultado.get("classe", "N/A")
-        destino = get_destino(classe)
-        confianca = resultado.get("confianca", 0)
-        status = resultado.get("status", "N/A")
-
-        print(f"\n{filename}:")
-        print(f"  Classe: {classe}")
-        print(f"  Destino: {destino}")
-        print(f"  Confiança: {confianca}")
-        print(f"  Vértices: {resultado.get('vertices', 'N/A')}")
-        print(f"  Status: {status}")
-
-        # Gerar imagem anotada
-        output_path = os.path.join(IMAGES_DIR, f"anotada_{filename}")
-        annotate_image(path, output_path)
-
-    print("\n" + "=" * 70)
-    print(f"TOTAL CLASSIFICADO: {total} imagens")
-    print("""
-Validação com peças reais (RF02/RF03):
-- 20 apresentações de QUADRADO -> meta >= 18 acertos
-- 20 apresentações de TRIÂNGULO -> meta >= 18 acertos
-- 20 apresentações de QUADRADO COM X -> meta >= 18 reconhecimentos
-    """)
-    print("=" * 70)
+from classifier import classify_image, classify_with_confidence, get_destino
+from main import MaquinaDeEstados, processar_peca
 
 
-def testar_fluxos():
-    """Testa as funções auxiliares: get_destino e detecção de X."""
-    print("=" * 70)
-    print("TESTE DE FLUXOS - TRIA")
-    print("=" * 70)
+def _classe_esperada(filename):
+    if filename.startswith("q"):
+        return "QUADRADO"
+    if filename.startswith("t"):
+        return "TRIÂNGULO"
+    if filename.startswith("x"):
+        return "QUADRADO_COM_X"
+    raise ValueError(f"imagem de teste sem classe no nome: {filename}")
 
-    # Teste de destinos
-    ok_destinos = {
-        "QUADRADO": "A",
-        "TRIÂNGULO": "B",
-        "QUADRADO_COM_X": "C",
+
+def test_classifica_as_18_imagens_de_referencia():
+    imagens = sorted(
+        path for path in IMAGES_DIR.glob("*.jpeg")
+        if not path.name.startswith("anotada_")
+    )
+    assert len(imagens) == 18
+
+    erros = []
+    for path in imagens:
+        obtida = classify_with_confidence(path).get("classe")
+        esperada = _classe_esperada(path.name)
+        if obtida != esperada:
+            erros.append(f"{path.name}: esperado={esperada}, obtido={obtida}")
+    assert not erros, "\n".join(erros)
+
+
+def test_fluxo_do_main_classifica_as_imagens_de_referencia():
+    for path in sorted(IMAGES_DIR.glob("[qtx][1-6].jpeg")):
+        frame = cv2.imread(str(path))
+        resultado = processar_peca(frame)
+        assert resultado.get("classe") == _classe_esperada(path.name), path.name
+
+
+def test_fotos_reais_adicionais_quando_presentes():
+    casos = {
+        "quadrado.jpeg": "QUADRADO",
+        "triangulo.jpeg": "TRIÂNGULO",
+        "erro.jpeg": "QUADRADO_COM_X",
     }
-    for classe, destino_esperado in ok_destinos.items():
-        destino = get_destino(classe)
-        ok = destino == destino_esperado
-        print(f"  get_destino({classe}) = {destino} {'OK' if ok else 'FALHOU'}")
-        if not ok:
-            return False
-
-    print("  Destinos: OK")
-
-    # Verificar payload mqtt usa defeito corretamente
-    import config
-    assert config.TOPICO_TRIAGEM == "tria/triagem"
-    assert config.TOPICO_STATUS_PI == "tria/status/pi"
-    assert config.TOPICO_STATUS_ESP32 == "tria/status/esp32"
-    assert config.TOPICO_ATUADOR == "tria/atuador"
-    print("  Tópicos MQTT: OK")
-
-    return True
+    for filename, esperada in casos.items():
+        path = PROJECT_ROOT / filename
+        if path.exists():
+            assert classify_with_confidence(path).get("classe") == esperada
 
 
-if __name__ == "__main__":
-    testar_classificador()
-    testar_fluxos()
+def test_fundo_branco_nao_vira_quadrado():
+    frame_sem_peca = np.full((480, 640, 3), 255, dtype=np.uint8)
+    resultado = classify_image(frame_sem_peca)
+    assert resultado["status"] == "sem_peca"
+    assert "classe" not in resultado
+
+
+def test_destinos():
+    assert get_destino("QUADRADO") == "A"
+    assert get_destino("TRIÂNGULO") == "B"
+    assert get_destino("QUADRADO_COM_X") == "C"
+
+
+def test_maquina_de_estados_nao_duplica_eventos():
+    maquina = MaquinaDeEstados()
+    assert maquina.ao_detectar_peca() is True
+    assert maquina.ao_detectar_peca() is False
+    maquina.marcar_classificada()
+    assert maquina.ao_detectar_peca() is False
+    assert maquina.ao_sair_peca() is True
+    assert maquina.ao_detectar_peca() is True
+    assert maquina.total_eventos == 2

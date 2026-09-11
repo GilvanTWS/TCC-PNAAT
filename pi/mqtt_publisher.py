@@ -5,11 +5,13 @@ PoC Física - Levantamento de Requisitos
 """
 
 import json
-import time
 from datetime import datetime
 from uuid import uuid4
 
-import paho.mqtt.client as mqtt
+try:
+    import paho.mqtt.client as mqtt
+except ImportError:
+    mqtt = None
 
 from config import (
     MQTT_BROKER,
@@ -20,7 +22,6 @@ from config import (
     VELOCIDADE_ESTEIRA_M_S,
     DISTANCIA_CAMERA_DESVIADOR_M,
     MARGEM_SEGURANCA_S,
-    PARAMETROS_REANALISE,
 )
 
 
@@ -61,9 +62,20 @@ def publicar_classificacao(client, classe, destino, defeito=False, tempo_process
     if tempo_processamento_ms is not None:
         payload["tempo_processamento_ms"] = tempo_processamento_ms
 
+    if client is None:
+        print(f"[MQTT desativado] Evento local: {json.dumps(payload, ensure_ascii=False)}")
+        return payload
+
     result = client.publish(TOPICO_TRIAGEM, json.dumps(payload), qos=1)
-    result.wait_for_publish()
-    print(f"[{datetime.now().isoformat()}] Publicado em {TOPICO_TRIAGEM}: {json.dumps(payload, ensure_ascii=False)}")
+    try:
+        result.wait_for_publish(timeout=2.0)
+    except (RuntimeError, ValueError) as exc:
+        print(f"Aviso: evento não confirmado pelo MQTT: {exc}")
+    else:
+        if result.is_published():
+            print(f"[{datetime.now().isoformat()}] Publicado em {TOPICO_TRIAGEM}: {json.dumps(payload, ensure_ascii=False)}")
+        else:
+            print("Aviso: tempo esgotado aguardando confirmação do MQTT.")
     return payload
 
 
@@ -87,13 +99,26 @@ def publicar_status_pi(client, versao_calibracao="1.0", ciclo_atual=0):
         "ultimo_destino": "",
     }
 
+    if client is None:
+        return payload
+
     result = client.publish(TOPICO_STATUS_PI, json.dumps(payload), qos=1, retain=True)
-    result.wait_for_publish()
-    print(f"Status do Pi publicado em {TOPICO_STATUS_PI}: {json.dumps(payload)}")
+    try:
+        result.wait_for_publish(timeout=2.0)
+    except (RuntimeError, ValueError) as exc:
+        print(f"Aviso: status não confirmado pelo MQTT: {exc}")
+        return payload
+    if result.is_published():
+        print(f"Status do Pi publicado em {TOPICO_STATUS_PI}: {json.dumps(payload)}")
+    else:
+        print("Aviso: tempo esgotado aguardando status do MQTT.")
+    return payload
 
 
-def create_client() -> mqtt.Client:
+def create_client():
     """Cria e conecta o cliente MQTT ao broker local (Mosquitto)."""
+    if mqtt is None:
+        raise RuntimeError("pacote paho-mqtt não instalado")
     client = mqtt.Client(
         client_id=f"tria-pi-{uuid4().hex[:8]}",
         protocol=mqtt.MQTTv311,
@@ -126,9 +151,17 @@ def publicar_imagem_evidencia(client, image_path, classe, destino, defeito):
         "qualidade_segmentacao": 0.0,  # preenchido pelo software de visão
     }
 
+    if client is None:
+        print(f"[MQTT desativado] Evidência local: {json.dumps(payload)}")
+        return payload
+
     result = client.publish(TOPICO_TRIAGEM, json.dumps(payload), qos=1)
-    result.wait_for_publish()
-    print(f"Evidência publicada: {json.dumps(payload)}")
+    result.wait_for_publish(timeout=2.0)
+    if result.is_published():
+        print(f"Evidência publicada: {json.dumps(payload)}")
+    else:
+        print("Aviso: tempo esgotado aguardando evidência do MQTT.")
+    return payload
 
 
 if __name__ == "__main__":
