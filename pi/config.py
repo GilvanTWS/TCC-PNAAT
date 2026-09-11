@@ -43,6 +43,16 @@ RAZAO_AREA_MARCA_MAX = 0.9       # marca pode ocupar até 90% da área do pai
 ASPECTO_PARENTE = (0.4, 2.5)     # peça é quadrada (tolerância de perspectiva)
 TAMANHO_CLASSIFICACAO = (640, 480)  # redimensiona fotos grandes antes de classificar
 
+# Morfologia: engrossa linhas finas da gravação (0 = desligado)
+DILATACAO_MORFOLOGICA = 0
+KERNEL_DILATACAO = 3
+
+# ROI fixo para remover barras da estrutura (esteira) no frame 640x480.
+# Formato (x1, y1, x2, y2). (0, 0, 0, 0) = desligado.
+# Calibrar com a câmera fixa da montagem; desligado nas fotos de teste
+# (os recortes têm enquadramentos variados e um corte fixo cortaria a peça).
+ROI_ESTRUTURA = (0, 0, 0, 0)
+
 # Parâmetros de reanálise (Frames 0 = Otsu)
 PARAMETROS_REANALISE = [
     {"binarizacao": 0, "epsilon_ratio": 0.04},

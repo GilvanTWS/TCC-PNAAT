@@ -6,21 +6,30 @@ As peças de ensaio são quadrados de MDF e a diferença está na marca
 desenhada ao centro: QUADRADO, TRIÂNGULO ou X (defeito).
 
 Estratégia: varredura de todos os contornos (RETR_TREE) com prioridade:
-  1. X: contorno com muitos vértices que confirma linhas diagonais (~45°/135°)
-     via Hough → QUADRADO_COM_X (descarte);
+  1. X: contorno côncavo (estrela) com muitos vértices e esqueleto de 3-4 pontas
+     (Zhang-Suen) → QUADRADO_COM_X (descarte);
   2. TRIÂNGULO: contorno estável de 3 vértices, em formato triangular
      plausível → TRIÂNGULO;
-  3. Padrão seguro: QUADRADO (marca quadrada ou sem marca visível → Saída A).
+  3. Padrão seguro: QUADRADO (peça MDF, sem marca ou marca quadrada → Saída A).
+
+Barras longas da estrutura (aspecto achatado) e ROI configurável evitam
+que o fundo da imagem seja lido como a peça quadrada.
 """
 
 import cv2
 import numpy as np
 
 from config import (
+    ASPECTO_PARENTE,
+    DILATACAO_MORFOLOGICA,
+    KERNEL_DILATACAO,
     LIMIAR_AREA_MARCA,
     LIMIAR_AREA_MINIMA,
     LIMIAR_CONFIANCA,
     PARAMETROS_REANALISE,
+    RAZAO_AREA_MARCA_MIN,
+    RAZAO_AREA_MARCA_MAX,
+    ROI_ESTRUTURA,
     TAMANHO_CLASSIFICACAO,
 )
 
@@ -34,13 +43,73 @@ def redimensionar_para_padrao(image):
 
 
 def preprocess_image(image, limiar_binarizacao=0):
-    """Pré-processamento: escala de cinza + binarização (Otsu quando limiar=0)."""
+    """
+    Pré-processamento: escala de cinza + binarização (Otsu quando limiar=0)
+    + dilatação morfológica opcional (engrossa linhas finas da gravação).
+    """
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     if limiar_binarizacao == 0:
         _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     else:
         _, thresh = cv2.threshold(gray, limiar_binarizacao, 255, cv2.THRESH_BINARY_INV)
+    if DILATACAO_MORFOLOGICA > 0:
+        kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (KERNEL_DILATACAO, KERNEL_DILATACAO)
+        )
+        thresh = cv2.dilate(thresh, kernel, iterations=DILATACAO_MORFOLOGICA)
     return thresh
+
+
+def _aplicar_roi(image):
+    """Remove barras da estrutura (canto fixo do frame), quando configurado."""
+    if ROI_ESTRUTURA == (0, 0, 0, 0):
+        return image
+    x1, y1, x2, y2 = ROI_ESTRUTURA
+    h, w = image.shape[:2]
+    x1, y1 = max(0, min(x1, w)), max(0, min(y1, h))
+    x2, y2 = max(x1 + 1, min(x2, w)), max(y1 + 1, min(y2, h))
+    return image[y1:y2, x1:x2]
+
+
+def _selecionar_peca(contours, hierarchy=None):
+    """
+    Escolhe a peça de MDF: maior contorno com proporção (w/h) próxima de 1,
+    descartando barras longas/achatadas da estrutura (aspecto > ASPECTO_PARENTE).
+    Se o contorno escolhido contiver um filho quadrado significativo (região de
+    esteira ao redor da peça), desce para o filho (enquadramento mais apertado).
+    Usada como referência de área e como contorno principal no fallback QUADRADO.
+    """
+    melhor = None
+    melhor_idx = -1
+    melhor_area = -1
+    for i, c in enumerate(contours):
+        area = cv2.contourArea(c)
+        if area <= 0:
+            continue
+        x, y, w, h = cv2.boundingRect(c)
+        if h == 0:
+            continue
+        aspecto = w / h
+        if ASPECTO_PARENTE[0] <= aspecto <= ASPECTO_PARENTE[1] and area > melhor_area:
+            melhor, melhor_idx, melhor_area = c, i, area
+
+    if melhor is None:
+        return max(contours, key=cv2.contourArea)
+
+    if hierarchy is not None and melhor_idx >= 0:
+        filhos = []
+        j = hierarchy[melhor_idx][2]
+        while j >= 0:
+            x, y, w, h = cv2.boundingRect(contours[j])
+            if h > 0 and ASPECTO_PARENTE[0] <= w / h <= ASPECTO_PARENTE[1]:
+                filhos.append((cv2.contourArea(contours[j]), contours[j]))
+            j = hierarchy[j][0]
+        if filhos:
+            filhos.sort(key=lambda t: t[0], reverse=True)
+            area_filho, filho = filhos[0]
+            if area_filho >= 0.15 * melhor_area:
+                melhor = filho
+    return melhor
 
 
 def detect_contours(thresh):
@@ -259,15 +328,16 @@ def classificar_por_varredura(image, thresh, epsilon_ratio=0.04):
         return None, 0.0, 0, None
     hier = hierarchy[0] if hierarchy is not None else None
 
-    maior = max(contours, key=cv2.contourArea)
-    ref_area = cv2.contourArea(maior)
+    # Peça de MDF = referência (evita usar barra da estrutura como base)
+    peca = _selecionar_peca(contours, hier)
+    ref_area = cv2.contourArea(peca)
 
     if ref_area <= 0:
         return None, 0.0, 0, None
 
     # Faixa de área plausível para a marca (menor que a peça, acima de ruído)
-    lo = max(LIMIAR_AREA_MARCA, 0.005 * ref_area)
-    hi = 0.8 * ref_area
+    lo = max(LIMIAR_AREA_MARCA, RAZAO_AREA_MARCA_MIN * ref_area)
+    hi = RAZAO_AREA_MARCA_MAX * ref_area
 
     melhor_x = None
     melhor_x_conf = 0.0
@@ -307,8 +377,8 @@ def classificar_por_varredura(image, thresh, epsilon_ratio=0.04):
     if melhor_tri is not None:
         return "TRIÂNGULO", 0.9, 3, melhor_tri
 
-    # 3) Padrão seguro: QUADRADO (usa o maior contorno para anotação)
-    return "QUADRADO", 0.85, 4, maior
+    # 3) Padrão seguro: QUADRADO (usa a peça MDF para anotação)
+    return "QUADRADO", 0.85, count_vertices(peca, epsilon_ratio), peca
 
 
 def classify_single(image_path, limiar_binarizacao=0, epsilon_ratio=0.04):
@@ -321,6 +391,7 @@ def classify_single(image_path, limiar_binarizacao=0, epsilon_ratio=0.04):
         return {"erro": f"Não foi possível carregar: {image_path}"}
 
     image = redimensionar_para_padrao(image)
+    image = _aplicar_roi(image)
 
     thresh = preprocess_image(image, limiar_binarizacao)
 
@@ -402,6 +473,7 @@ def annotate_image(image_path, output_path=None):
         return None
 
     image = redimensionar_para_padrao(image)
+    image = _aplicar_roi(image)
 
     resultado = classify_with_confidence(image_path)
 
