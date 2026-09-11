@@ -1,5 +1,3 @@
-version: "3.8"
-
 # Stack MING - PoC Física Tria
 # Mosquitto, Node-RED, InfluxDB, Grafana
 # Uso: docker compose up -d
@@ -70,14 +68,13 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin123456
-      # Auto-provision Data Source InfluxDB
-      - GF_INSTALL_PLUGINS=grafana-influx-datasource
     ports:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/datasources:/etc/grafana/provisioning/datasources
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
     networks:
       - tria_net
 
