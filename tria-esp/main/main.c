@@ -1,6 +1,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 
+#include "conveyor.h"
 #include "tria_actuator.h"
 #include "tria_display.h"
 #include "tria_network.h"
@@ -45,6 +46,9 @@ void app_main(void)
         .motor_gpio = CONFIG_TRIA_VIBRATION_GPIO,
         .debounce_ms = CONFIG_TRIA_BUTTON_DEBOUNCE_MS,
     };
+    const conveyor_config_t conveyor_config = {
+        .gpio = CONFIG_TRIA_CONVEYOR_GPIO,
+    };
     const tria_network_config_t network_config = {
         .wifi_ssid = CONFIG_TRIA_WIFI_SSID,
         .wifi_password = CONFIG_TRIA_WIFI_PASSWORD,
@@ -65,6 +69,7 @@ void app_main(void)
 
     ESP_ERROR_CHECK(tria_actuator_start(&actuator_config));
     ESP_ERROR_CHECK(vibration_start(&vibration_config));
+    ESP_ERROR_CHECK(conveyor_start(&conveyor_config));
 
     tria_display_show("TRIA - ESP32", "Conectando", "MQTT...");
     ESP_ERROR_CHECK(tria_network_start(&network_config));

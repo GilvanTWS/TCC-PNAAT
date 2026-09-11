@@ -35,6 +35,14 @@ menu "TRIA - Vibracao"
 
 endmenu
 
+menu "TRIA - Esteira"
+
+    config TRIA_CONVEYOR_GPIO
+        int "GPIO da esteira"
+        default 6
+
+endmenu
+
 menu "TRIA - Atuação (servo)"
 
     config TRIA_SERVO_GPIO
