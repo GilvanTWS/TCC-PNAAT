@@ -281,7 +281,7 @@ Firmware ESP-IDF construído sobre a **PoC do servo do Claylton** (`components/s
 ```bash
 sudo apt install libcap-dev          # headers da libcap (build do python-prctl, dependência do picamera2)
 cd pi
-python -m venv venv
+python3 -m venv --system-site-packges venv
 source venv/bin/activate
 pip install -r requirements.txt
 python tests/test_classifier.py        # testes locais
