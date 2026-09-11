@@ -34,11 +34,20 @@ LIMIAR_AREA_MINIMA = 500
 LIMIAR_CIRCULARIDADE = 0.7
 MAX_TENTATIVAS = 3
 
-# Parâmetros de reanálise
+# Classificação pela marca interna (peça MDF quadrada + desenho central)
+# Contorno "pai" = a peça de MDF (sempre quadrado), "filho" = a marca desenhada.
+LIMIAR_AREA_PARENTE = 10000      # área mínima (px²) do contorno pai, no frame redimensionado
+LIMIAR_AREA_MARCA = 200          # área mínima (px²) de um contorno filho (marca)
+RAZAO_AREA_MARCA_MIN = 0.005     # marca deve ocupar ao menos 0,5% da área do pai
+RAZAO_AREA_MARCA_MAX = 0.9       # marca pode ocupar até 90% da área do pai
+ASPECTO_PARENTE = (0.4, 2.5)     # peça é quadrada (tolerância de perspectiva)
+TAMANHO_CLASSIFICACAO = (640, 480)  # redimensiona fotos grandes antes de classificar
+
+# Parâmetros de reanálise (Frames 0 = Otsu)
 PARAMETROS_REANALISE = [
-    {"binarizacao": 127, "epsilon_ratio": 0.04},
-    {"binarizacao": 100, "epsilon_ratio": 0.04},
-    {"binarizacao": 150, "epsilon_ratio": 0.06},
+    {"binarizacao": 0, "epsilon_ratio": 0.04},
+    {"binarizacao": 200, "epsilon_ratio": 0.04},
+    {"binarizacao": 100, "epsilon_ratio": 0.06},
 ]
 
 # Câmera
