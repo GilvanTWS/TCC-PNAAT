@@ -29,6 +29,7 @@ services:
       - mosquitto
     environment:
       - TZ=America/Sao_Paulo
+      - INFLUXDB_TOKEN=tria-token-2026
     ports:
       - "1880:1880"
     volumes:
