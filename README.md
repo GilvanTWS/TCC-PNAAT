@@ -302,6 +302,22 @@ Interfaces disponíveis:
 - **InfluxDB:** http://localhost:8086
 - **Broker MQTT:** localhost:1883
 
+O dashboard **TRIA - Monitoramento da Triagem** é provisionado
+automaticamente a partir de `ming/grafana/dashboards/tria-dashboard.json`.
+Ele contém totais, taxa de defeitos, distribuições por classe e destino,
+produção por minuto, tempo de processamento e as últimas inspeções.
+
+Após atualizar os arquivos de provisionamento, recrie o Grafana:
+
+```bash
+cd ming
+docker compose up -d --force-recreate grafana
+```
+
+Alterações feitas pela interface ficam no volume do Grafana, mas não atualizam
+o JSON versionado. Para manter uma edição na branch, exporte o dashboard como
+JSON clássico e substitua o arquivo em `ming/grafana/dashboards/`.
+
 ### 3. Firmware ESP32 (tria-esp)
 
 ```bash
