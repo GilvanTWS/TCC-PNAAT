@@ -26,6 +26,7 @@ static void vibration_task(void *arg)
 {
     int last_reading = gpio_get_level(vibration_config.button_gpio);
     int stable_state = last_reading;
+    bool motor_enabled = false;
     TickType_t last_change = xTaskGetTickCount();
     const TickType_t debounce_ticks = pdMS_TO_TICKS(vibration_config.debounce_ms);
 
@@ -38,7 +39,12 @@ static void vibration_task(void *arg)
             last_change = now;
         } else if (reading != stable_state && now - last_change >= debounce_ticks) {
             stable_state = reading;
-            set_enabled(stable_state == 0);
+
+            /* O botao usa pull-up: nivel baixo representa um novo pressionamento. */
+            if (stable_state == 0) {
+                motor_enabled = !motor_enabled;
+                set_enabled(motor_enabled);
+            }
         }
 
         vTaskDelay(pdMS_TO_TICKS(POLL_INTERVAL_MS));

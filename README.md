@@ -254,6 +254,47 @@ python main.py --web
 
 Acesse `http://IP_DO_PI:8081`. Alternativas: sem `--web` para janela local, `--sem-janela` para captura sem interface ou `--sem-mqtt` para teste isolado. A ROI pode ser ajustada com `--roi X Y W H`; a placa deve caber completamente nela.
 
+#### Reproduzir e avaliar os vídeos de ensaio
+
+O modo de vídeo usa a mesma ROI e a mesma máquina de estados da câmera ao
+vivo, mas nunca publica MQTT. Para observar um ensaio gravado:
+
+```bash
+cd pi
+python main.py --video tests/videos/misturado01.mp4
+```
+
+Em uma instalação sem monitor, use o visualizador web:
+
+```bash
+python main.py --video tests/videos/misturado01.mp4 --web
+```
+
+Os arquivos `misturado*.txt` contêm uma classe esperada por linha. O avaliador
+processa todos os MP4, alinha as sequências e informa classificações corretas,
+incorretas, perdidas e extras:
+
+```bash
+python evaluate_videos.py tests/videos
+```
+
+Para os vídeos de classe única, informe quantas peças foram apresentadas em
+cada arquivo. O prefixo do nome define a classe esperada:
+
+```bash
+python evaluate_videos.py tests/videos --total-classe 10
+```
+
+Para guardar o resumo em uma planilha CSV:
+
+```bash
+python evaluate_videos.py tests/videos --total-classe 10 \
+  --csv tests/videos/resultado.csv
+```
+
+Se a captura usou uma ROI manual, repita os mesmos valores durante a avaliação
+com `--roi X Y W H`.
+
 ### 2. Stack MING
 
 ```bash
