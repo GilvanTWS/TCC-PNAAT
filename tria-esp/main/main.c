@@ -48,6 +48,7 @@ void app_main(void)
     };
     const conveyor_config_t conveyor_config = {
         .gpio = CONFIG_TRIA_CONVEYOR_GPIO,
+        .speed_percent = CONFIG_TRIA_CONVEYOR_SPEED_PERCENT,
     };
     const tria_network_config_t network_config = {
         .wifi_ssid = CONFIG_TRIA_WIFI_SSID,
