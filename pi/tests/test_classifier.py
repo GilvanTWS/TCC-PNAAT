@@ -11,8 +11,8 @@ IMAGES_DIR = Path(__file__).resolve().parent / "images"
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from classifier import classify_image, classify_with_confidence, get_destino
-from evaluate_videos import alinhar_sequencias, ler_gabarito
-from main import MaquinaDeEstados, processar_peca
+from evaluate_videos import alinhar_sequencias, ler_gabarito, normalizar_classe
+from main import MaquinaDeEstados, processar_peca, processar_video
 
 
 def _classe_esperada(filename):
@@ -99,6 +99,16 @@ def test_gabaritos_dos_videos_tem_classes_validas():
     assert gabaritos
     for path in gabaritos:
         assert ler_gabarito(path), path.name
+
+
+def test_misturado01_detecta_todas_as_pecas_na_ordem_correta():
+    video = Path(__file__).resolve().parent / "videos" / "misturado01.mp4"
+    esperada = ler_gabarito(video.with_suffix(".txt"))
+
+    resultado = processar_video(video, exibir=False, tempo_real=False)
+    obtida = [normalizar_classe(item["classe"]) for item in resultado["eventos"]]
+
+    assert obtida == esperada
 
 
 def test_alinhamento_identifica_perda_troca_e_extra():

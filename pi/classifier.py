@@ -246,6 +246,155 @@ def _classificar_marca(contour):
     return None
 
 
+def classificar_sequencia_normalizada(pecas_normalizadas):
+    """
+    Classifica uma peça usando todos os quadros em que ela cruzou a ROI.
+
+    Vídeo comprimido e desfoque de movimento podem apagar temporariamente um
+    lado da marca. Em vez de decidir pelo primeiro quadro legível, esta função
+    usa a mediana da região central para reconhecer o X e escolhe, entre todos
+    os quadros, o contorno fechado de melhor qualidade para quadrado/triângulo.
+    """
+    if not pecas_normalizadas:
+        return {
+            "erro": "Nenhuma amostra da peça foi recebida",
+            "status": "sem_amostras",
+        }
+
+    preenchimentos_centro = []
+    melhor_contorno = None
+    melhor_pontuacao = -1.0
+    melhor_mascara = None
+    melhor_normalizada = None
+
+    for normalizada in pecas_normalizadas:
+        if normalizada is None or normalizada.size == 0:
+            continue
+
+        lado = normalizada.shape[0]
+        margem = round(lado * MARGEM_MARCA)
+        centro = normalizada[margem:lado - margem, margem:lado - margem]
+        if centro.size == 0:
+            continue
+
+        gray = cv2.cvtColor(centro, cv2.COLOR_BGR2GRAY)
+        # O limiar adaptativo recupera sulcos fracos mesmo quando a iluminação
+        # muda ao longo da esteira. O fechamento une pequenos trechos apagados
+        # pela compressão/desfoque sem preencher o interior das figuras.
+        binaria = cv2.adaptiveThreshold(
+            gray,
+            255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY_INV,
+            31,
+            2,
+        )
+
+        altura, largura = binaria.shape
+        y0, y1 = round(altura * 0.42), round(altura * 0.58)
+        x0, x1 = round(largura * 0.42), round(largura * 0.58)
+        miolo = binaria[y0:y1, x0:x1]
+        preenchimentos_centro.append(float(np.count_nonzero(miolo)) / miolo.size)
+
+        fechada = cv2.morphologyEx(
+            binaria,
+            cv2.MORPH_CLOSE,
+            np.ones((15, 15), np.uint8),
+        )
+        contours, _ = cv2.findContours(
+            fechada, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        area_imagem = float(gray.size)
+        lado_marca = min(gray.shape[:2])
+
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            _, _, w, h = cv2.boundingRect(contour)
+            if area < 0.005 * area_imagem:
+                continue
+            if w < 0.15 * lado_marca or h < 0.15 * lado_marca:
+                continue
+
+            area_casco = cv2.contourArea(cv2.convexHull(contour))
+            solidez = area / max(1.0, area_casco)
+            pontuacao = area * solidez
+            if pontuacao > melhor_pontuacao:
+                melhor_pontuacao = pontuacao
+                melhor_contorno = contour
+                melhor_mascara = fechada
+                melhor_normalizada = normalizada
+
+    if not preenchimentos_centro:
+        return {
+            "erro": "As amostras da peça não possuem imagem válida",
+            "status": "sem_amostras",
+        }
+
+    preenchimento_centro = float(np.median(preenchimentos_centro))
+
+    def resultado_x():
+        return {
+            "classe": "QUADRADO_COM_X",
+            "confianca": 0.95,
+            "status": "aceito",
+            "preenchimento_centro": round(preenchimento_centro, 3),
+            "peca_normalizada": (
+                melhor_normalizada
+                if melhor_normalizada is not None
+                else pecas_normalizadas[-1]
+            ),
+            "mascara_marca": melhor_mascara,
+        }
+
+    # Uma ocupação central muito alta só ocorre no cruzamento dos dois traços
+    # do X. Esse atalho também cobre quadros em que uma sombra prejudica o
+    # contorno externo, mas o centro da gravação continua nítido.
+    if preenchimento_centro > 0.20:
+        return resultado_x()
+
+    if melhor_contorno is None:
+        if preenchimento_centro > 0.05:
+            return resultado_x()
+        return {
+            "erro": "Peça detectada, mas a marca central não foi encontrada",
+            "status": "marca_nao_detectada",
+        }
+
+    perimetro = cv2.arcLength(melhor_contorno, True)
+    vertices = len(cv2.approxPolyDP(melhor_contorno, 0.035 * perimetro, True))
+    area = cv2.contourArea(melhor_contorno)
+    area_casco = cv2.contourArea(cv2.convexHull(melhor_contorno))
+    solidez = area / max(1.0, area_casco)
+
+    # Dê prioridade a polígonos convexos bem formados. Isso evita chamar de X
+    # um triângulo cuja ponta passa pelo pequeno recorte central.
+    if vertices == 3 and solidez >= 0.75:
+        classe = "TRIÂNGULO"
+    elif vertices == 4 and solidez >= 0.75:
+        classe = "QUADRADO"
+    elif preenchimento_centro > 0.05 or (vertices >= 5 and solidez < 0.75):
+        return resultado_x()
+    else:
+        return {
+            "erro": "Marca encontrada, mas o formato não é reconhecido",
+            "status": "marca_desconhecida",
+            "vertices": vertices,
+            "peca_normalizada": melhor_normalizada,
+            "mascara_marca": melhor_mascara,
+        }
+
+    return {
+        "classe": classe,
+        "confianca": 0.95,
+        "vertices": vertices,
+        "solidez": round(solidez, 3),
+        "preenchimento_centro": round(preenchimento_centro, 3),
+        "status": "aceito",
+        "peca_normalizada": melhor_normalizada,
+        "mascara_marca": melhor_mascara,
+    }
+
+
 def classify_image(image):
     """Classifica diretamente um frame BGR do OpenCV."""
     peca = localizar_peca_mdf(image)

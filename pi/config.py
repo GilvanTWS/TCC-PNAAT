@@ -33,8 +33,12 @@ LIMIAR_AREA_MINIMA = 500
 
 # Segmentação da placa de MDF. A placa é localizada pela sua faixa de cor
 # (marrom/bege), corrigida por perspectiva e só depois a marca é analisada.
-HSV_MDF_MIN = (5, 30, 35)
-HSV_MDF_MAX = (40, 230, 245)
+# O MDF e a esteira podem ter valores (brilho) muito parecidos quando a câmera
+# ajusta automaticamente a exposição. A saturação e o matiz são bem mais
+# estáveis: o MDF fica amarelo/ocre, enquanto a esteira permanece quase neutra.
+# Não limite S/V no topo (255), pois isso fazia placas bem iluminadas sumirem.
+HSV_MDF_MIN = (5, 80, 30)
+HSV_MDF_MAX = (28, 255, 255)
 AREA_PECA_FRAME_MIN = 0.008       # 0,8% da ROI
 AREA_PECA_FRAME_MAX = 0.85        # aceita peça próxima sem selecionar o fundo
 ASPECTO_PECA_MAX = 2.4

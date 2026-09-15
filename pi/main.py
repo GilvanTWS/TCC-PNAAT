@@ -34,7 +34,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import cv2
 
-from classifier import classify_image, get_destino, localizar_peca_mdf
+from classifier import (
+    classificar_sequencia_normalizada,
+    classify_image,
+    get_destino,
+    localizar_peca_mdf,
+)
 from config import (
     FRAMES_CONFIRMAR_AUSENCIA,
     FRAMES_CONFIRMAR_PRESENCA,
@@ -138,6 +143,29 @@ def processar_peca(frame, roi=None):
         "defeito": defeito,
         "confianca": resultado["confianca"],
         "box": resultado.get("box"),
+        "tempo_processamento_ms": tempo_processamento_ms,
+    }
+
+
+def processar_amostras_peca(amostras_normalizadas):
+    """Classifica uma passagem usando as melhores informações de vários frames."""
+    t0 = time.perf_counter()
+    resultado = classificar_sequencia_normalizada(amostras_normalizadas)
+    tempo_processamento_ms = round((time.perf_counter() - t0) * 1000, 1)
+
+    if "erro" in resultado:
+        return {
+            "tempo_processamento_ms": tempo_processamento_ms,
+            "erro": resultado["erro"],
+            "status": resultado.get("status", "erro"),
+        }
+
+    classe = resultado["classe"]
+    return {
+        "classe": classe,
+        "destino": get_destino(classe),
+        "defeito": classe == "QUADRADO_COM_X",
+        "confianca": resultado["confianca"],
         "tempo_processamento_ms": tempo_processamento_ms,
     }
 
@@ -384,7 +412,8 @@ def main_loop(
     frames_presente = 0
     frames_ausente = 0
     numero_frame = 0
-    proxima_tentativa = 0
+    historico_presenca = []
+    amostras_peca = []
     ultima_mensagem = "Aguardando peca entrar completamente na ROI"
 
     print("TRIA - iniciando pipeline de captura. Ctrl+C para encerrar.")
@@ -404,33 +433,49 @@ def main_loop(
             recorte = frame_atual[y:y + h, x:x + w]
             localizacao = localizar_peca_mdf(recorte)
             presente = localizacao is not None
+            nova_peca = False
 
             if presente:
                 frames_presente += 1
                 frames_ausente = 0
+                normalizada_atual = localizacao["normalizada"].copy()
+                if maquina.estado == "livre":
+                    historico_presenca.append(normalizada_atual)
+                    historico_presenca = historico_presenca[
+                        -FRAMES_CONFIRMAR_PRESENCA:
+                    ]
             else:
                 frames_ausente += 1
                 frames_presente = 0
+                if maquina.estado == "livre":
+                    historico_presenca.clear()
 
             if (
                 frames_presente >= FRAMES_CONFIRMAR_PRESENCA
                 and maquina.ao_detectar_peca()
             ):
+                nova_peca = True
+                amostras_peca = list(historico_presenca)
+                historico_presenca.clear()
                 print(f"\n[{time.strftime('%H:%M:%S')}] Peça {maquina.peca_atual} "
-                      f"detectada na ROI - classificando...")
-                ultima_mensagem = "Peca detectada - classificando"
-                proxima_tentativa = numero_frame
+                      f"detectada na ROI - coletando amostras...")
+                ultima_mensagem = "Peca detectada - coletando amostras"
 
             if (
                 maquina.estado == "ocupado_aguardando"
                 and presente
-                and numero_frame >= proxima_tentativa
+                and not nova_peca
             ):
-                resultado = processar_peca(frame_atual, roi)
+                amostras_peca.append(normalizada_atual)
 
+            if (
+                frames_ausente >= FRAMES_CONFIRMAR_AUSENCIA
+                and maquina.ocupada
+            ):
+                resultado = processar_amostras_peca(amostras_peca)
                 if "erro" in resultado:
                     ultima_mensagem = resultado["erro"]
-                    proxima_tentativa = numero_frame + 5
+                    print(f"  Não foi possível classificar: {resultado['erro']}")
                 else:
                     maquina.marcar_classificada()
                     ultima_mensagem = (
@@ -452,14 +497,12 @@ def main_loop(
                         tempo_processamento_ms=resultado["tempo_processamento_ms"],
                     )
                     print(f"  Evento: {evento['id_evento']}")
-
-            if (
-                frames_ausente >= FRAMES_CONFIRMAR_AUSENCIA
-                and maquina.ao_sair_peca()
-            ):
+                maquina.ao_sair_peca()
+                amostras_peca.clear()
                 print(f"[{time.strftime('%H:%M:%S')}] Peça saiu da ROI - "
                       f"aguardando próximo ciclo.")
-                ultima_mensagem = "Aguardando proxima peca"
+                if "erro" not in resultado:
+                    ultima_mensagem = "Aguardando proxima peca"
 
             if janela_ativa or visualizador_web is not None:
                 exibicao = _desenhar_interface(
@@ -562,10 +605,45 @@ def processar_video(
     frames_presente = 0
     frames_ausente = 0
     numero_frame = 0
-    proxima_tentativa = 0
+    historico_presenca = []
+    amostras_peca = []
+    ultimo_frame_peca = 0
     eventos = []
     ultima_mensagem = "Aguardando peca entrar completamente na ROI"
     interrompido = False
+
+    def finalizar_peca_video():
+        """Fecha a passagem atual, inclusive quando o vídeo acaba com a peça na ROI."""
+        nonlocal ultima_mensagem, ultimo_frame_peca
+        resultado = processar_amostras_peca(amostras_peca)
+        if "erro" in resultado:
+            ultima_mensagem = resultado["erro"]
+        else:
+            maquina.marcar_classificada()
+            ultima_mensagem = (
+                f"{resultado['classe']} -> Saida {resultado['destino']} "
+                f"({resultado['confianca']:.0%})"
+            )
+            evento = {
+                "ordem": len(eventos) + 1,
+                "frame": ultimo_frame_peca,
+                "tempo_video_s": round((ultimo_frame_peca - 1) / fps, 3),
+                "classe": resultado["classe"],
+                "destino": resultado["destino"],
+                "confianca": resultado["confianca"],
+                "tempo_processamento_ms": resultado["tempo_processamento_ms"],
+            }
+            eventos.append(evento)
+            print(
+                f"  [{evento['tempo_video_s']:7.2f}s] "
+                f"{evento['classe']} -> {evento['destino']} "
+                f"({evento['tempo_processamento_ms']} ms)"
+            )
+        maquina.ao_sair_peca()
+        amostras_peca.clear()
+        ultimo_frame_peca = 0
+        if "erro" not in resultado:
+            ultima_mensagem = "Aguardando proxima peca"
 
     try:
         while ok and frame is not None:
@@ -576,57 +654,46 @@ def processar_video(
             recorte = frame[y:y + h, x:x + w]
             localizacao = localizar_peca_mdf(recorte)
             presente = localizacao is not None
+            nova_peca = False
 
             if presente:
                 frames_presente += 1
                 frames_ausente = 0
+                normalizada_atual = localizacao["normalizada"].copy()
+                if maquina.estado == "livre":
+                    historico_presenca.append(normalizada_atual)
+                    historico_presenca = historico_presenca[
+                        -FRAMES_CONFIRMAR_PRESENCA:
+                    ]
             else:
                 frames_ausente += 1
                 frames_presente = 0
+                if maquina.estado == "livre":
+                    historico_presenca.clear()
 
             if (
                 frames_presente >= FRAMES_CONFIRMAR_PRESENCA
                 and maquina.ao_detectar_peca()
             ):
-                ultima_mensagem = "Peca detectada - classificando"
-                proxima_tentativa = numero_frame
+                nova_peca = True
+                amostras_peca = list(historico_presenca)
+                historico_presenca.clear()
+                ultimo_frame_peca = numero_frame
+                ultima_mensagem = "Peca detectada - coletando amostras"
 
             if (
                 maquina.estado == "ocupado_aguardando"
                 and presente
-                and numero_frame >= proxima_tentativa
+                and not nova_peca
             ):
-                resultado = processar_peca(frame, roi_video)
-                if "erro" in resultado:
-                    ultima_mensagem = resultado["erro"]
-                    proxima_tentativa = numero_frame + 5
-                else:
-                    maquina.marcar_classificada()
-                    ultima_mensagem = (
-                        f"{resultado['classe']} -> Saida {resultado['destino']} "
-                        f"({resultado['confianca']:.0%})"
-                    )
-                    evento = {
-                        "ordem": len(eventos) + 1,
-                        "frame": numero_frame,
-                        "tempo_video_s": round((numero_frame - 1) / fps, 3),
-                        "classe": resultado["classe"],
-                        "destino": resultado["destino"],
-                        "confianca": resultado["confianca"],
-                        "tempo_processamento_ms": resultado["tempo_processamento_ms"],
-                    }
-                    eventos.append(evento)
-                    print(
-                        f"  [{evento['tempo_video_s']:7.2f}s] "
-                        f"{evento['classe']} -> {evento['destino']} "
-                        f"({evento['tempo_processamento_ms']} ms)"
-                    )
+                amostras_peca.append(normalizada_atual)
+                ultimo_frame_peca = numero_frame
 
             if (
                 frames_ausente >= FRAMES_CONFIRMAR_AUSENCIA
-                and maquina.ao_sair_peca()
+                and maquina.ocupada
             ):
-                ultima_mensagem = "Aguardando proxima peca"
+                finalizar_peca_video()
 
             if janela_ativa or visualizador_web is not None:
                 exibicao = _desenhar_interface(
@@ -657,6 +724,9 @@ def processar_video(
                 time.sleep(espera_ms / 1000)
 
             ok, frame = captura.read()
+
+        if not interrompido and maquina.ocupada:
+            finalizar_peca_video()
     except KeyboardInterrupt:
         interrompido = True
     finally:
