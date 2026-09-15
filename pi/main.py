@@ -519,7 +519,7 @@ def definir_roi(frame_shape):
     """ROI central por padrão (50% da largura central, altura útil)."""
     altura, largura = frame_shape[:2]
     w = int(largura * 0.5)
-    h = int(altura * 0.6)
+    h = int(altura * 0.8)
     x = (largura - w) // 2
     y = (altura - h) // 2
     return (x, y, w, h)
