@@ -29,7 +29,7 @@ def test_classifica_as_18_imagens_de_referencia():
         path for path in IMAGES_DIR.glob("*.jpeg")
         if not path.name.startswith("anotada_")
     )
-    assert len(imagens) == 18
+    assert len(imagens) >= 18
 
     erros = []
     for path in imagens:
@@ -45,6 +45,15 @@ def test_fluxo_do_main_classifica_as_imagens_de_referencia():
         frame = cv2.imread(str(path))
         resultado = processar_peca(frame)
         assert resultado.get("classe") == _classe_esperada(path.name), path.name
+
+
+def test_classifica_todas_as_imagens_disponiveis():
+    for path in sorted(
+        p for p in IMAGES_DIR.glob("*.jpeg")
+        if not p.name.startswith("anotada_")
+    ):
+        obtida = classify_with_confidence(path).get("classe")
+        assert obtida == _classe_esperada(path.name), path.name
 
 
 def test_fotos_reais_adicionais_quando_presentes():
