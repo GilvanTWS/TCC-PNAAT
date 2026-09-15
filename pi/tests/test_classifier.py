@@ -11,6 +11,7 @@ IMAGES_DIR = Path(__file__).resolve().parent / "images"
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from classifier import classify_image, classify_with_confidence, get_destino
+from evaluate_videos import alinhar_sequencias, ler_gabarito
 from main import MaquinaDeEstados, processar_peca
 
 
@@ -90,3 +91,22 @@ def test_maquina_de_estados_nao_duplica_eventos():
     assert maquina.ao_sair_peca() is True
     assert maquina.ao_detectar_peca() is True
     assert maquina.total_eventos == 2
+
+
+def test_gabaritos_dos_videos_tem_classes_validas():
+    videos_dir = Path(__file__).resolve().parent / "videos"
+    gabaritos = sorted(videos_dir.glob("misturado*.txt"))
+    assert gabaritos
+    for path in gabaritos:
+        assert ler_gabarito(path), path.name
+
+
+def test_alinhamento_identifica_perda_troca_e_extra():
+    alinhamento = alinhar_sequencias(
+        ["QUADRADO", "TRIANGULO", "QUADRADO_COM_X"],
+        ["QUADRADO", "QUADRADO", "TRIANGULO", "QUADRADO"],
+    )
+    tipos = [item[0] for item in alinhamento]
+    assert tipos.count("correta") == 2
+    assert tipos.count("incorreta") == 1
+    assert tipos.count("extra") == 1

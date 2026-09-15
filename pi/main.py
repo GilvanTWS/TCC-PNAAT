@@ -15,6 +15,7 @@ Uso:
   python main.py --web              # visualização no navegador
   python main.py --sem-mqtt         # testa a câmera sem broker MQTT
   python main.py --imagem x.png     # classifica a imagem inteira
+  python main.py --video teste.mp4  # reproduz um ensaio gravado
   python main.py --sem-janela       # execução sem interface gráfica
 
 Requisitos dos critérios atendidos aqui:
@@ -515,6 +516,198 @@ def modo_simulacao(imagem_path, roi=None):
     return 0
 
 
+def processar_video(
+    video_path, roi=None, exibir=False, somente_web=False, porta_web=8081,
+    tempo_real=False,
+):
+    """
+    Executa o mesmo detector de passagem sobre um vídeo gravado.
+
+    Não publica MQTT, para que um ensaio nunca mova o atuador. Retorna os
+    eventos na ordem em que foram detectados, permitindo comparar o resultado
+    com o gabarito do vídeo.
+    """
+    captura = cv2.VideoCapture(str(video_path))
+    if not captura.isOpened():
+        return {"erro": f"Não foi possível abrir o vídeo: {video_path}"}
+
+    fps = captura.get(cv2.CAP_PROP_FPS)
+    if not fps or fps <= 0:
+        fps = float(FRAMERATE)
+
+    ok, frame = captura.read()
+    if not ok or frame is None:
+        captura.release()
+        return {"erro": f"O vídeo não possui quadros legíveis: {video_path}"}
+
+    try:
+        roi_video = validar_roi(roi, frame.shape) if roi else definir_roi(frame.shape)
+    except ValueError as exc:
+        captura.release()
+        return {"erro": str(exc)}
+
+    janela_ativa = _janela_disponivel(exibir and not somente_web)
+    visualizador_web = None
+    if exibir and (somente_web or not janela_ativa):
+        try:
+            visualizador_web = VisualizadorWeb(porta=porta_web)
+            visualizador_web.iniciar()
+            print("Reprodução do vídeo disponível no navegador:")
+            for url in visualizador_web.urls():
+                print(f"  {url}")
+        except OSError as exc:
+            print(f"Aviso: não foi possível iniciar a visualização web: {exc}")
+
+    maquina = MaquinaDeEstados()
+    frames_presente = 0
+    frames_ausente = 0
+    numero_frame = 0
+    proxima_tentativa = 0
+    eventos = []
+    ultima_mensagem = "Aguardando peca entrar completamente na ROI"
+    interrompido = False
+
+    try:
+        while ok and frame is not None:
+            inicio_frame = time.perf_counter()
+            numero_frame += 1
+
+            x, y, w, h = roi_video
+            recorte = frame[y:y + h, x:x + w]
+            localizacao = localizar_peca_mdf(recorte)
+            presente = localizacao is not None
+
+            if presente:
+                frames_presente += 1
+                frames_ausente = 0
+            else:
+                frames_ausente += 1
+                frames_presente = 0
+
+            if (
+                frames_presente >= FRAMES_CONFIRMAR_PRESENCA
+                and maquina.ao_detectar_peca()
+            ):
+                ultima_mensagem = "Peca detectada - classificando"
+                proxima_tentativa = numero_frame
+
+            if (
+                maquina.estado == "ocupado_aguardando"
+                and presente
+                and numero_frame >= proxima_tentativa
+            ):
+                resultado = processar_peca(frame, roi_video)
+                if "erro" in resultado:
+                    ultima_mensagem = resultado["erro"]
+                    proxima_tentativa = numero_frame + 5
+                else:
+                    maquina.marcar_classificada()
+                    ultima_mensagem = (
+                        f"{resultado['classe']} -> Saida {resultado['destino']} "
+                        f"({resultado['confianca']:.0%})"
+                    )
+                    evento = {
+                        "ordem": len(eventos) + 1,
+                        "frame": numero_frame,
+                        "tempo_video_s": round((numero_frame - 1) / fps, 3),
+                        "classe": resultado["classe"],
+                        "destino": resultado["destino"],
+                        "confianca": resultado["confianca"],
+                        "tempo_processamento_ms": resultado["tempo_processamento_ms"],
+                    }
+                    eventos.append(evento)
+                    print(
+                        f"  [{evento['tempo_video_s']:7.2f}s] "
+                        f"{evento['classe']} -> {evento['destino']} "
+                        f"({evento['tempo_processamento_ms']} ms)"
+                    )
+
+            if (
+                frames_ausente >= FRAMES_CONFIRMAR_AUSENCIA
+                and maquina.ao_sair_peca()
+            ):
+                ultima_mensagem = "Aguardando proxima peca"
+
+            if janela_ativa or visualizador_web is not None:
+                exibicao = _desenhar_interface(
+                    frame, roi_video, localizacao, maquina.estado,
+                    ultima_mensagem,
+                    "Q ou ESC: sair" if janela_ativa else "Ctrl+C: sair",
+                )
+                cv2.putText(
+                    exibicao,
+                    f"Video: {numero_frame / fps:.1f}s | Eventos: {len(eventos)}",
+                    (12, exibicao.shape[0] - 12),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.48, (255, 255, 255), 1,
+                )
+                if visualizador_web is not None:
+                    visualizador_web.atualizar(exibicao)
+
+            espera_ms = 1
+            if tempo_real:
+                gasto_ms = (time.perf_counter() - inicio_frame) * 1000
+                espera_ms = max(1, round(1000 / fps - gasto_ms))
+
+            if janela_ativa:
+                tecla = cv2.waitKey(espera_ms) & 0xFF
+                if tecla in (ord("q"), ord("Q"), 27):
+                    interrompido = True
+                    break
+            elif tempo_real:
+                time.sleep(espera_ms / 1000)
+
+            ok, frame = captura.read()
+    except KeyboardInterrupt:
+        interrompido = True
+    finally:
+        captura.release()
+        if janela_ativa:
+            cv2.destroyWindow("TRIA - Camera")
+        if visualizador_web is not None:
+            visualizador_web.fechar()
+
+    return {
+        "video": str(video_path),
+        "fps": round(fps, 3),
+        "frames_processados": numero_frame,
+        "duracao_processada_s": round(numero_frame / fps, 3),
+        "roi": roi_video,
+        "eventos": eventos,
+        "interrompido": interrompido,
+    }
+
+
+def modo_video(
+    video_path, roi=None, exibir=True, somente_web=False, porta_web=8081,
+):
+    """Reproduz um ensaio gravado e mostra as classificações encontradas."""
+    print(f"Modo vídeo - processando {video_path}")
+    resultado = processar_video(
+        video_path,
+        roi=roi,
+        exibir=exibir,
+        somente_web=somente_web,
+        porta_web=porta_web,
+        tempo_real=exibir,
+    )
+    if "erro" in resultado:
+        print(f"Erro: {resultado['erro']}")
+        return 2
+
+    print("\nSequência detectada:")
+    if resultado["eventos"]:
+        for evento in resultado["eventos"]:
+            print(f"  {evento['ordem']:02d}. {evento['classe']}")
+    else:
+        print("  Nenhuma peça classificada.")
+    print(
+        f"Resumo: {len(resultado['eventos'])} evento(s), "
+        f"{resultado['frames_processados']} frames, "
+        f"{resultado['duracao_processada_s']:.2f}s de vídeo."
+    )
+    return 0
+
+
 def definir_roi(frame_shape):
     """ROI central por padrão (50% da largura central, altura útil)."""
     altura, largura = frame_shape[:2]
@@ -542,9 +735,14 @@ def main():
     parser = argparse.ArgumentParser(
         description="TRIA - pipeline principal do Pi", allow_abbrev=False
     )
-    parser.add_argument(
+    fonte = parser.add_mutually_exclusive_group()
+    fonte.add_argument(
         "--imagem", "--image", dest="imagem",
         help="modo simulação: classifica uma imagem estática",
+    )
+    fonte.add_argument(
+        "--video", dest="video",
+        help="reproduz um vídeo gravado pelo pipeline da ROI",
     )
     parser.add_argument("--roi", nargs=4, type=int, metavar=("X", "Y", "W", "H"),
                         help="região de interesse (default: central)")
@@ -582,6 +780,16 @@ def main():
             print(f"Erro: {exc}")
             return 1
         return modo_simulacao(args.imagem, roi)
+
+    if args.video:
+        roi = roi_configurada
+        return modo_video(
+            args.video,
+            roi=roi,
+            exibir=not args.sem_janela,
+            somente_web=args.web,
+            porta_web=args.porta_web,
+        )
 
     if not PICAMERA_DISPONIVEL:
         print("Picamera2 não disponível neste ambiente (necessário Raspberry Pi).")
