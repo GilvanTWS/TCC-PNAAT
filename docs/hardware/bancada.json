@@ -1,0 +1,70 @@
+{
+  "identificacao": "TRIA — perfil documentado da bancada",
+  "estado": "parcial: componentes e PWM confirmados; medições físicas pendentes",
+  "origem": "Informações da equipe e parâmetros do código; não representa inspeção presencial",
+  "unidades": {"dimensoes": "mm", "correntes": "A", "tempo": "ms"},
+  "eletrica_confirmada_pela_equipe": {
+    "motor_esteira_tensao_v": 5,
+    "motor_esteira_transistor": "2N2222A",
+    "fan_tensao_v": 12,
+    "fan_transistor": "TIP120",
+    "resistores_base_ohm": {"R1": 2000, "R2": 2000},
+    "diodos_protecao_presentes": true,
+    "servo_modelo": "SG90",
+    "servo_massa_g": 9,
+    "esteira_pwm_percentual": 65
+  },
+  "parametros_do_firmware": {
+    "gpio": {"esteira": 6, "fan": 7, "servo": 47, "botao": 0},
+    "frequencia_esteira_hz": 20000,
+    "frequencia_servo_hz": 50,
+    "angulos_iniciais_graus": {"A": 45, "B": 90, "C": 135},
+    "espera_servo_ms": 500,
+    "debounce_ms": 30
+  },
+  "componentes_a_identificar": {
+    "fabricante_e_encapsulamento_Q1": null,
+    "fabricante_e_encapsulamento_Q2": null,
+    "diodo_D1_modelo": null,
+    "diodo_D2_modelo": null,
+    "motor_modelo": null,
+    "fan_modelo": null,
+    "fontes_modelos_e_capacidades": null
+  },
+  "correntes_medidas_a": {
+    "esteira_regime": null,
+    "esteira_partida": null,
+    "fan_regime": null,
+    "fan_partida": null,
+    "servo_movimento_com_carga": null
+  },
+  "mecanica_mm": {
+    "base_comprimento": null,
+    "base_largura": null,
+    "mdf_estrutura_espessura": null,
+    "peca_comprimento": null,
+    "peca_largura": null,
+    "peca_espessura": null,
+    "simbolo_largura_e_espessura_traco": null,
+    "plataforma_comprimento_e_largura": null,
+    "limitador_folga": null,
+    "rampa_desnivel_entrada_saida": null,
+    "rampa_comprimento_e_largura": null,
+    "esteira_comprimento_util_e_largura": null,
+    "camera_altura_sobre_esteira": null,
+    "distancia_saida_roi_aleta": null,
+    "aleta_comprimento_e_largura": null,
+    "saidas_dimensoes_e_posicoes": null
+  },
+  "observacao_original_equipe": "A rampa é da altura do MDF; referência e valor em mm não informados.",
+  "calibracao_medida": {
+    "roi_xywh_px": null,
+    "velocidade_esteira_m_s": null,
+    "angulos_servo_graus": null,
+    "tempo_real_estabilizacao_ms": null,
+    "menor_intervalo_livre_entre_pecas_ms": null,
+    "iluminacao_e_configuracao_camera": null,
+    "data_operador_e_revisao_git": null,
+    "fotos_e_arquivos_de_corte": []
+  }
+}

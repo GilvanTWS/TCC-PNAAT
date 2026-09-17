@@ -44,9 +44,10 @@ menu "TRIA - Esteira"
     config TRIA_CONVEYOR_SPEED_PERCENT
         int "Velocidade da esteira (%)"
         range 0 100
-        default 100
+        default 65
         help
             Duty cycle do PWM usado para controlar a velocidade da esteira.
+            A bancada TRIA usa 65%; percentual eletrico nao equivale a m/s.
             Use 0 para manter a esteira parada e 100 para velocidade maxima.
 
 endmenu

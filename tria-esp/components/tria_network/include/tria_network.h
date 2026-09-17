@@ -4,6 +4,7 @@
 
 #include "esp_err.h"
 
+/** Textos emprestados do parser, válidos somente durante decision_handler. */
 typedef struct {
     const char *id_evento;
     const char *classe;
@@ -16,6 +17,7 @@ typedef enum {
     TRIA_NETWORK_TIMEOUT,
 } tria_network_state_t;
 
+/** Callback síncrono na tarefa MQTT; ESP_OK autoriza publicar a confirmação. */
 typedef esp_err_t (*tria_decision_handler_t)(const tria_decision_t *decision,
                                             void *context);
 typedef void (*tria_network_state_handler_t)(tria_network_state_t state,
@@ -33,4 +35,12 @@ typedef struct {
     void *callback_context;
 } tria_network_config_t;
 
+/**
+ * @brief Inicia Wi-Fi STA, MQTT e supervisor uma única vez.
+ * @param config Estrutura copiada; strings e callback_context devem continuar
+ * válidos por toda a execução. Tempos em ms, maiores que zero. decision_handler
+ * obrigatório; state_handler opcional, chamado por tarefas MQTT/supervisor.
+ * @return ESP_OK indica inicialização, não conexão já estabelecida. Erros de
+ * configuração/inicialização são propagados; reinicialização é rejeitada.
+ */
 esp_err_t tria_network_start(const tria_network_config_t *config);

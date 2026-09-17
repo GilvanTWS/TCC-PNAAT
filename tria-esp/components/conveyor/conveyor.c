@@ -12,6 +12,7 @@
 
 static const char *TAG = "conveyor";
 static const ledc_mode_t conveyor_speed_mode = LEDC_LOW_SPEED_MODE;
+/* Timer/canal 1 são exclusivos da esteira: o servo usa 0 a 50 Hz. */
 static const ledc_timer_t conveyor_timer = LEDC_TIMER_1;
 static const ledc_channel_t conveyor_channel = LEDC_CHANNEL_1;
 static uint32_t configured_duty;
@@ -46,6 +47,8 @@ esp_err_t conveyor_start(const conveyor_config_t *config)
     ESP_RETURN_ON_ERROR(ledc_timer_config(&timer_config), TAG,
                         "Falha ao configurar timer PWM");
 
+    /* Duty em 10 bits (0..1023), arredondado para baixo. Em 65%, vale 664.
+     * Mede tempo ligado da chave, não velocidade linear nem corrente. */
     configured_duty = (CONVEYOR_MAX_DUTY * config->speed_percent) / 100U;
     const ledc_channel_config_t channel_config = {
         .gpio_num = config->gpio,

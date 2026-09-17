@@ -1,0 +1,6 @@
+video,esperadas,detectadas,corretas,incorretas,perdidas,extras,acerto_percentual,fps_video,frames
+misturado01.mp4,10,10,10,0,0,0,100.0,30.026,890
+misturado02.mp4,16,15,15,0,1,0,93.8,30.026,890
+misturado03.mp4,18,18,18,0,0,0,100.0,30.026,889
+misturado04.mp4,19,18,17,1,1,0,89.5,30.026,890
+misturado05.mp4,17,18,16,1,0,1,88.9,30.026,890

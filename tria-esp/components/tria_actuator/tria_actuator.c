@@ -63,6 +63,8 @@ esp_err_t tria_actuator_move(const char *destination)
                  destination, positions[i].angle);
         ESP_RETURN_ON_ERROR(servo_set_angle(positions[i].angle), TAG,
                             "Falha ao mover servo");
+        /* Espera de malha aberta: libera CPU, mas mantém o callback MQTT
+         * ocupado. ESP_OK não comprova a posição física nem a saída da peça. */
         vTaskDelay(pdMS_TO_TICKS(actuator_config.settling_time_ms));
         return ESP_OK;
     }

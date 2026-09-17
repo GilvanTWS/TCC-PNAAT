@@ -54,17 +54,19 @@ FRAMERATE = 30
 FRAMES_CONFIRMAR_PRESENCA = 3
 FRAMES_CONFIRMAR_AUSENCIA = 3
 
-# Calibração do desviador (ângulos em graus - ajustar na montagem)
+# Referência em graus; não comanda o ESP32. Os valores efetivos ficam no
+# menuconfig (TRIA_ANGULO_A/B/C). Confirmar as posições na montagem.
 ANGULOS_DESVIADOR = {
-    "A": 45,   # Posição calibrada para Saída A
-    "B": 90,   # Posição calibrada para Saída B
-    "C": 135,  # Posição calibrada para Saída C
+    "A": 45,   # Posição inicial para Saída A
+    "B": 90,   # Posição inicial para Saída B
+    "C": 135,  # Posição inicial para Saída C
 }
 
-# Temporização (metros - ajustar na montagem)
+# Valores iniciais, não medições da bancada. Alimentam apenas o campo
+# informativo instante_atuacao; o firmware não agenda movimentos por ele.
 DISTANCIA_CAMERA_DESVIADOR_M = 0.3  # metros
 VELOCIDADE_ESTEIRA_M_S = 0.1        # m/s
-MARGEM_SEGURANCA_S = 0.3            # segundos antes da peça
+MARGEM_SEGURANCA_S = 0.3            # segundos somados à estimativa de percurso
 
 # ESP32
 ESP32_ID = "esp32-tria-01"

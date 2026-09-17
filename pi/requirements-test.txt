@@ -1,0 +1,11 @@
+# Avaliação offline validada em Windows x64 / Python 3.12.14.
+# Não instalar sobre o ambiente Picamera2 do Raspberry Pi.
+opencv-python==5.0.0.93
+numpy==2.5.3
+paho-mqtt==2.1.0
+pytest==9.1.1
+colorama==0.4.6; sys_platform == "win32"
+iniconfig==2.3.0
+packaging==26.3
+pluggy==1.6.0
+pygments==2.21.0

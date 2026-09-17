@@ -3,7 +3,6 @@
 from pathlib import Path
 import sys
 
-import cv2
 import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -13,6 +12,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from classifier import classify_image, classify_with_confidence, get_destino
 from evaluate_videos import alinhar_sequencias, ler_gabarito, normalizar_classe
 from main import MaquinaDeEstados, processar_peca, processar_video
+from image_io import ler_imagem, salvar_imagem
 
 
 def _classe_esperada(filename):
@@ -43,7 +43,7 @@ def test_classifica_as_18_imagens_de_referencia():
 
 def test_fluxo_do_main_classifica_as_imagens_de_referencia():
     for path in sorted(IMAGES_DIR.glob("[qtx][1-6].jpeg")):
-        frame = cv2.imread(str(path))
+        frame = ler_imagem(path)
         resultado = processar_peca(frame)
         assert resultado.get("classe") == _classe_esperada(path.name), path.name
 
@@ -74,6 +74,24 @@ def test_fundo_branco_nao_vira_quadrado():
     resultado = classify_image(frame_sem_peca)
     assert resultado["status"] == "sem_peca"
     assert "classe" not in resultado
+
+
+def test_imagem_em_caminho_com_acentos(tmp_path):
+    # Reproduz a falha de cv2.imread com caminhos absolutos Unicode no Windows.
+    path = tmp_path / "inspeção" / "peça.png"
+    frame = ler_imagem(IMAGES_DIR / "q1.jpeg")
+    salvar_imagem(path, frame)
+    assert np.array_equal(ler_imagem(path), frame)
+    assert classify_with_confidence(path)["classe"] == "QUADRADO"
+
+
+def test_leitura_de_arquivo_ausente_vazio_ou_invalido(tmp_path):
+    path = tmp_path / "inválido.png"
+    assert ler_imagem(path) is None
+    path.write_bytes(b"")
+    assert ler_imagem(path) is None
+    path.write_bytes(b"isto nao e uma imagem")
+    assert ler_imagem(path) is None
 
 
 def test_destinos():

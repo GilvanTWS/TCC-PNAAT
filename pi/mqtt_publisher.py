@@ -30,7 +30,8 @@ def calcular_instante_atuacao():
     Calcula o tempo estimado para a peça chegar ao desviador.
     Baseado em distância e velocidade da esteira + margem de segurança.
     
-    Retorna: tempo em segundos
+    Retorna duração em segundos, não timestamp. Este campo é informativo:
+    o ESP32 atua imediatamente e não usa esta estimativa para agendamento.
     """
     tempo_percurso = DISTANCIA_CAMERA_DESVIADOR_M / VELOCIDADE_ESTEIRA_M_S
     return round(tempo_percurso + MARGEM_SEGURANCA_S, 2)
@@ -42,6 +43,10 @@ def publicar_classificacao(client, classe, destino, defeito=False, tempo_process
     
     Payload mínimo conforme levantamento:
     id_evento, horario, classe, destino, defeito
+
+    Retorna o payload mesmo em timeout: retorno não comprova entrega. QoS 1
+    admite reentrega; PUBACK confirma o broker, não movimento nem escrita no
+    InfluxDB. O horário usa o relógio local; sincronize os nós antes do ensaio.
     
     Args:
         client: cliente paho.mqtt já conectado
@@ -83,6 +88,9 @@ def publicar_status_pi(client, versao_calibracao="1.0", ciclo_atual=0):
     """
     Publica status de disponibilidade do processo de visão.
     Tópico: tria/status/pi
+
+    Mantido como diagnóstico legado: disponivel é fixo e não existe heartbeat
+    ou Last Will neste cliente. Não usar isoladamente como indicador de saúde.
     
     Args:
         client: cliente paho.mqtt já conectado
@@ -131,7 +139,9 @@ def create_client():
 def publicar_imagem_evidencia(client, image_path, classe, destino, defeito):
     """
     Registra uma evidência de classificação (imagem ou log).
-    Associa a imagem ao evento gerado.
+    Gera um novo ID e envia apenas o caminho, sem transferir a imagem.
+    Não é chamada pelo laço de captura. Como usa tria/triagem, também comanda
+    o atuador; não chamar após publicar_classificacao para a mesma passagem.
     
     Args:
         client: cliente paho.mqtt já conectado
@@ -148,7 +158,7 @@ def publicar_imagem_evidencia(client, image_path, classe, destino, defeito):
         "defeito": defeito,
         "imagem": image_path,
         "versao_calibracao": "1.0",
-        "qualidade_segmentacao": 0.0,  # preenchido pelo software de visão
+        "qualidade_segmentacao": 0.0,  # placeholder; não é uma medição calculada
     }
 
     if client is None:

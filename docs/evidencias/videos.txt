@@ -1,0 +1,318 @@
+
+Processando pi\tests\videos\misturado01.mp4...
+  [   3.80s] QUADRADO_COM_X -> C (13.4 ms)
+  [   6.00s] TRIÂNGULO -> B (10.1 ms)
+  [  10.49s] QUADRADO -> A (9.1 ms)
+  [  12.49s] QUADRADO -> A (8.9 ms)
+  [  17.45s] TRIÂNGULO -> B (7.9 ms)
+  [  19.42s] QUADRADO_COM_X -> C (9.5 ms)
+  [  20.78s] QUADRADO_COM_X -> C (9.6 ms)
+  [  24.01s] TRIÂNGULO -> B (11.0 ms)
+  [  28.57s] QUADRADO -> A (9.2 ms)
+  [  29.37s] QUADRADO -> A (7.4 ms)
+misturado01.mp4           esp= 10 det= 10 ok= 10 err=  0 perd=  0 extra=  0 acerto=100.0%
+
+Processando pi\tests\videos\misturado02.mp4...
+  [   2.73s] QUADRADO_COM_X -> C (9.2 ms)
+  [   5.23s] QUADRADO -> A (8.2 ms)
+  [   7.16s] TRIÂNGULO -> B (8.6 ms)
+  [   8.83s] QUADRADO -> A (8.6 ms)
+  [  10.29s] QUADRADO -> A (7.8 ms)
+  [  12.79s] QUADRADO_COM_X -> C (9.7 ms)
+  [  14.72s] QUADRADO -> A (9.5 ms)
+  [  16.42s] QUADRADO_COM_X -> C (9.5 ms)
+  [  18.82s] TRIÂNGULO -> B (8.2 ms)
+  [  20.52s] QUADRADO -> A (10.2 ms)
+  [  22.88s] QUADRADO -> A (9.1 ms)
+  [  24.14s] QUADRADO_COM_X -> C (10.7 ms)
+  [  25.81s] QUADRADO_COM_X -> C (11.6 ms)
+  [  27.64s] TRIÂNGULO -> B (8.9 ms)
+  [  28.91s] QUADRADO_COM_X -> C (8.7 ms)
+misturado02.mp4           esp= 16 det= 15 ok= 15 err=  0 perd=  1 extra=  0 acerto= 93.8%
+    perdida   esperado=QUADRADO         detectado=-
+
+Processando pi\tests\videos\misturado03.mp4...
+  [   2.80s] TRIÂNGULO -> B (8.9 ms)
+  [   5.93s] QUADRADO_COM_X -> C (10.0 ms)
+  [   7.49s] QUADRADO -> A (7.8 ms)
+  [   9.43s] QUADRADO_COM_X -> C (10.3 ms)
+  [  10.46s] QUADRADO_COM_X -> C (10.0 ms)
+  [  12.09s] TRIÂNGULO -> B (8.2 ms)
+  [  13.49s] TRIÂNGULO -> B (9.8 ms)
+  [  15.45s] QUADRADO -> A (9.5 ms)
+  [  17.02s] QUADRADO_COM_X -> C (10.2 ms)
+  [  18.75s] QUADRADO -> A (8.5 ms)
+  [  20.12s] TRIÂNGULO -> B (9.6 ms)
+  [  22.05s] QUADRADO_COM_X -> C (13.6 ms)
+  [  23.21s] TRIÂNGULO -> B (10.7 ms)
+  [  24.75s] QUADRADO -> A (9.4 ms)
+  [  26.14s] TRIÂNGULO -> B (10.1 ms)
+  [  27.18s] TRIÂNGULO -> B (7.9 ms)
+  [  28.68s] QUADRADO -> A (9.7 ms)
+  [  29.57s] QUADRADO_COM_X -> C (4.4 ms)
+misturado03.mp4           esp= 18 det= 18 ok= 18 err=  0 perd=  0 extra=  0 acerto=100.0%
+
+Processando pi\tests\videos\misturado04.mp4...
+  [   3.40s] TRIÂNGULO -> B (9.0 ms)
+  [   5.43s] TRIÂNGULO -> B (9.5 ms)
+  [   6.93s] TRIÂNGULO -> B (8.8 ms)
+  [   8.43s] QUADRADO -> A (8.4 ms)
+  [   9.56s] QUADRADO_COM_X -> C (11.0 ms)
+  [  10.49s] QUADRADO -> A (7.7 ms)
+  [  11.52s] TRIÂNGULO -> B (8.1 ms)
+  [  12.82s] TRIÂNGULO -> B (9.2 ms)
+  [  14.09s] QUADRADO_COM_X -> C (8.9 ms)
+  [  15.29s] QUADRADO -> A (8.8 ms)
+  [  17.78s] QUADRADO -> A (5.6 ms)
+  [  19.25s] QUADRADO_COM_X -> C (8.1 ms)
+  [  21.21s] TRIÂNGULO -> B (10.0 ms)
+  [  23.61s] QUADRADO_COM_X -> C (9.4 ms)
+  [  25.94s] QUADRADO -> A (8.1 ms)
+  [  27.21s] QUADRADO -> A (8.8 ms)
+  [  28.77s] QUADRADO_COM_X -> C (10.5 ms)
+  [  29.61s] QUADRADO -> A (9.5 ms)
+misturado04.mp4           esp= 19 det= 18 ok= 17 err=  1 perd=  1 extra=  0 acerto= 89.5%
+    incorreta esperado=TRIANGULO        detectado=QUADRADO
+    perdida   esperado=QUADRADO_COM_X   detectado=-
+
+Processando pi\tests\videos\misturado05.mp4...
+  [   3.23s] QUADRADO -> A (7.5 ms)
+  [   5.59s] QUADRADO_COM_X -> C (9.6 ms)
+  [   6.93s] QUADRADO_COM_X -> C (7.1 ms)
+  [   9.16s] QUADRADO_COM_X -> C (8.7 ms)
+  [  10.56s] TRIÂNGULO -> B (7.9 ms)
+  [  12.36s] QUADRADO -> A (11.3 ms)
+  [  13.05s] QUADRADO_COM_X -> C (2.4 ms)
+  [  13.59s] QUADRADO_COM_X -> C (6.2 ms)
+  [  15.02s] QUADRADO_COM_X -> C (9.4 ms)
+  [  16.25s] TRIÂNGULO -> B (8.6 ms)
+  [  17.55s] QUADRADO_COM_X -> C (11.0 ms)
+  [  19.58s] QUADRADO -> A (12.6 ms)
+  [  20.85s] TRIÂNGULO -> B (8.2 ms)
+  [  22.61s] QUADRADO -> A (9.2 ms)
+  [  23.55s] QUADRADO_COM_X -> C (8.5 ms)
+  [  25.41s] TRIÂNGULO -> B (8.7 ms)
+  [  27.41s] QUADRADO_COM_X -> C (8.6 ms)
+  [  29.47s] QUADRADO -> A (9.7 ms)
+misturado05.mp4           esp= 17 det= 18 ok= 16 err=  1 perd=  0 extra=  1 acerto= 88.9%
+    incorreta esperado=TRIANGULO        detectado=QUADRADO_COM_X
+    extra     esperado=-                detectado=QUADRADO_COM_X
+
+Processando pi\tests\videos\quadrado01.mp4...
+  [   3.33s] QUADRADO -> A (6.5 ms)
+  [   6.93s] QUADRADO -> A (6.1 ms)
+  [   9.16s] QUADRADO -> A (6.6 ms)
+  [  11.39s] QUADRADO_COM_X -> C (7.6 ms)
+  [  17.05s] QUADRADO_COM_X -> C (8.1 ms)
+  [  20.85s] QUADRADO -> A (7.7 ms)
+  [  22.11s] QUADRADO -> A (7.5 ms)
+  [  27.41s] QUADRADO_COM_X -> C (4.0 ms)
+  [  28.81s] QUADRADO -> A (7.9 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO, QUADRADO, QUADRADO, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO, QUADRADO, QUADRADO_COM_X, QUADRADO
+
+Processando pi\tests\videos\quadrado02.mp4...
+  [   6.63s] QUADRADO -> A (7.3 ms)
+  [   9.46s] QUADRADO -> A (10.1 ms)
+  [  11.79s] QUADRADO -> A (8.0 ms)
+  [  13.89s] QUADRADO -> A (7.4 ms)
+  [  16.12s] QUADRADO -> A (8.9 ms)
+  [  18.02s] QUADRADO -> A (6.4 ms)
+  [  20.05s] QUADRADO -> A (4.6 ms)
+  [  22.51s] QUADRADO -> A (10.0 ms)
+  [  27.74s] QUADRADO -> A (8.6 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO
+
+Processando pi\tests\videos\quadrado03.mp4...
+  [   4.03s] QUADRADO -> A (7.5 ms)
+  [   6.00s] QUADRADO -> A (9.0 ms)
+  [   7.63s] QUADRADO -> A (9.0 ms)
+  [   9.56s] QUADRADO -> A (7.2 ms)
+  [  12.66s] QUADRADO -> A (9.0 ms)
+  [  13.95s] QUADRADO -> A (12.9 ms)
+  [  15.85s] QUADRADO -> A (8.1 ms)
+  [  17.55s] QUADRADO -> A (8.1 ms)
+  [  19.18s] QUADRADO -> A (6.7 ms)
+  [  21.28s] QUADRADO -> A (7.6 ms)
+  [  23.38s] QUADRADO -> A (9.0 ms)
+  [  25.18s] QUADRADO -> A (9.9 ms)
+  [  28.18s] QUADRADO -> A (6.7 ms)
+  [  29.61s] QUADRADO -> A (4.3 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO
+
+Processando pi\tests\videos\quadrado04.mp4...
+  [   3.93s] QUADRADO -> A (7.2 ms)
+  [   5.29s] QUADRADO -> A (9.1 ms)
+  [  12.59s] QUADRADO -> A (8.0 ms)
+  [  13.62s] QUADRADO -> A (7.6 ms)
+  [  15.12s] QUADRADO -> A (7.8 ms)
+  [  18.02s] QUADRADO -> A (16.4 ms)
+  [  19.52s] QUADRADO_COM_X -> C (5.3 ms)
+  [  20.71s] QUADRADO -> A (9.0 ms)
+  [  21.71s] QUADRADO -> A (9.6 ms)
+  [  24.45s] QUADRADO -> A (8.7 ms)
+  [  27.54s] QUADRADO -> A (7.9 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO_COM_X, QUADRADO, QUADRADO, QUADRADO, QUADRADO
+
+Processando pi\tests\videos\quadrado05.mp4...
+  [   4.63s] QUADRADO -> A (9.0 ms)
+  [   7.83s] QUADRADO -> A (7.3 ms)
+  [  12.46s] QUADRADO -> A (7.4 ms)
+  [  13.95s] QUADRADO_COM_X -> C (2.5 ms)
+  [  15.32s] QUADRADO -> A (7.1 ms)
+  [  16.92s] QUADRADO -> A (8.0 ms)
+  [  19.35s] QUADRADO -> A (6.4 ms)
+  [  21.21s] QUADRADO -> A (9.9 ms)
+  [  22.81s] QUADRADO -> A (9.5 ms)
+  [  24.41s] QUADRADO -> A (8.1 ms)
+  [  26.81s] QUADRADO -> A (8.6 ms)
+  [  28.41s] QUADRADO -> A (8.6 ms)
+  [  29.61s] QUADRADO -> A (7.7 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO, QUADRADO, QUADRADO, QUADRADO_COM_X, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO, QUADRADO
+
+Processando pi\tests\videos\quadrado_com_x01.mp4...
+  [   4.60s] QUADRADO_COM_X -> C (7.9 ms)
+  [   8.66s] QUADRADO_COM_X -> C (10.6 ms)
+  [  12.49s] QUADRADO_COM_X -> C (9.8 ms)
+  [  17.42s] QUADRADO_COM_X -> C (6.6 ms)
+  [  20.28s] QUADRADO_COM_X -> C (5.8 ms)
+  [  23.41s] QUADRADO_COM_X -> C (10.9 ms)
+  [  27.41s] QUADRADO_COM_X -> C (9.7 ms)
+  [  29.61s] QUADRADO_COM_X -> C (9.6 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X
+
+Processando pi\tests\videos\quadrado_com_x02.mp4...
+  [   5.06s] QUADRADO_COM_X -> C (10.7 ms)
+  [   9.69s] QUADRADO_COM_X -> C (30.6 ms)
+  [  11.26s] QUADRADO_COM_X -> C (11.6 ms)
+  [  12.89s] QUADRADO_COM_X -> C (9.3 ms)
+  [  14.85s] QUADRADO_COM_X -> C (9.3 ms)
+  [  18.75s] QUADRADO_COM_X -> C (9.3 ms)
+  [  22.65s] QUADRADO_COM_X -> C (8.6 ms)
+  [  27.51s] QUADRADO_COM_X -> C (7.3 ms)
+  [  29.31s] QUADRADO_COM_X -> C (11.8 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X
+
+Processando pi\tests\videos\quadrado_com_x03.mp4...
+  [   4.80s] QUADRADO_COM_X -> C (10.1 ms)
+  [   7.46s] QUADRADO_COM_X -> C (8.3 ms)
+  [   9.12s] QUADRADO_COM_X -> C (10.4 ms)
+  [  11.29s] QUADRADO_COM_X -> C (7.4 ms)
+  [  12.86s] QUADRADO_COM_X -> C (10.3 ms)
+  [  14.85s] QUADRADO_COM_X -> C (10.9 ms)
+  [  16.82s] QUADRADO_COM_X -> C (8.1 ms)
+  [  19.05s] QUADRADO_COM_X -> C (6.7 ms)
+  [  20.22s] QUADRADO_COM_X -> C (9.9 ms)
+  [  22.31s] QUADRADO_COM_X -> C (12.7 ms)
+  [  24.21s] QUADRADO_COM_X -> C (12.1 ms)
+  [  25.84s] QUADRADO_COM_X -> C (9.3 ms)
+  [  27.34s] QUADRADO_COM_X -> C (8.6 ms)
+  [  28.71s] QUADRADO_COM_X -> C (10.2 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X
+
+Processando pi\tests\videos\quadrado_com_x04.mp4...
+  [   5.63s] QUADRADO_COM_X -> C (9.6 ms)
+  [   7.53s] QUADRADO_COM_X -> C (11.0 ms)
+  [   9.86s] QUADRADO_COM_X -> C (13.9 ms)
+  [  11.46s] QUADRADO_COM_X -> C (8.8 ms)
+  [  13.42s] QUADRADO_COM_X -> C (9.8 ms)
+  [  15.15s] QUADRADO_COM_X -> C (10.8 ms)
+  [  18.85s] QUADRADO_COM_X -> C (11.4 ms)
+  [  20.35s] QUADRADO_COM_X -> C (11.7 ms)
+  [  21.35s] QUADRADO_COM_X -> C (1.8 ms)
+  [  23.31s] QUADRADO_COM_X -> C (12.1 ms)
+  [  25.48s] QUADRADO_COM_X -> C (12.3 ms)
+  [  27.38s] QUADRADO_COM_X -> C (11.6 ms)
+  [  28.81s] QUADRADO_COM_X -> C (10.7 ms)
+  [  29.61s] QUADRADO_COM_X -> C (7.4 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X
+
+Processando pi\tests\videos\quadrado_com_x05.mp4...
+  [   5.00s] QUADRADO_COM_X -> C (10.0 ms)
+  [   6.93s] QUADRADO_COM_X -> C (10.4 ms)
+  [   8.99s] QUADRADO_COM_X -> C (13.0 ms)
+  [  11.16s] QUADRADO_COM_X -> C (9.0 ms)
+  [  12.62s] QUADRADO_COM_X -> C (2.8 ms)
+  [  13.19s] QUADRADO_COM_X -> C (5.8 ms)
+  [  16.19s] QUADRADO_COM_X -> C (8.8 ms)
+  [  18.15s] QUADRADO_COM_X -> C (8.8 ms)
+  [  19.45s] QUADRADO_COM_X -> C (9.5 ms)
+  [  21.68s] QUADRADO_COM_X -> C (7.2 ms)
+  [  23.18s] QUADRADO_COM_X -> C (8.8 ms)
+  [  25.68s] QUADRADO_COM_X -> C (7.1 ms)
+  [  27.51s] QUADRADO_COM_X -> C (10.4 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X, QUADRADO_COM_X
+
+Processando pi\tests\videos\triangulo01.mp4...
+  [   6.06s] TRIÂNGULO -> B (10.2 ms)
+  [   8.53s] TRIÂNGULO -> B (9.7 ms)
+  [  10.99s] TRIÂNGULO -> B (9.5 ms)
+  [  15.32s] TRIÂNGULO -> B (8.8 ms)
+  [  19.38s] TRIÂNGULO -> B (3.3 ms)
+  [  24.18s] TRIÂNGULO -> B (6.0 ms)
+  [  27.14s] TRIÂNGULO -> B (9.2 ms)
+Sem TXT/total esperado; sequência detectada: TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO
+
+Processando pi\tests\videos\triangulo02.mp4...
+  [   3.73s] QUADRADO_COM_X -> C (9.6 ms)
+  [   5.83s] QUADRADO -> A (10.5 ms)
+  [   7.39s] QUADRADO_COM_X -> C (5.3 ms)
+  [  13.12s] TRIÂNGULO -> B (8.8 ms)
+  [  14.09s] TRIÂNGULO -> B (8.4 ms)
+  [  19.62s] TRIÂNGULO -> B (8.6 ms)
+  [  20.82s] TRIÂNGULO -> B (8.0 ms)
+  [  24.08s] TRIÂNGULO -> B (6.8 ms)
+  [  25.44s] TRIÂNGULO -> B (9.2 ms)
+  [  27.21s] TRIÂNGULO -> B (9.8 ms)
+  [  29.61s] TRIÂNGULO -> B (7.0 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO_COM_X, QUADRADO, QUADRADO_COM_X, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO
+
+Processando pi\tests\videos\triangulo03.mp4...
+  [   3.93s] TRIÂNGULO -> B (8.6 ms)
+  [   6.23s] QUADRADO -> A (10.1 ms)
+  [   7.73s] TRIÂNGULO -> B (10.1 ms)
+  [  11.06s] TRIÂNGULO -> B (8.2 ms)
+  [  12.42s] TRIÂNGULO -> B (7.5 ms)
+  [  14.49s] TRIÂNGULO -> B (8.4 ms)
+  [  17.48s] TRIÂNGULO -> B (10.0 ms)
+  [  18.72s] TRIÂNGULO -> B (4.7 ms)
+  [  20.48s] TRIÂNGULO -> B (10.1 ms)
+  [  24.08s] TRIÂNGULO -> B (8.7 ms)
+  [  25.38s] TRIÂNGULO -> B (7.8 ms)
+  [  29.51s] TRIÂNGULO -> B (8.7 ms)
+Sem TXT/total esperado; sequência detectada: TRIANGULO, QUADRADO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO
+
+Processando pi\tests\videos\triangulo04.mp4...
+  [   3.90s] QUADRADO_COM_X -> C (8.2 ms)
+  [   7.16s] TRIÂNGULO -> B (8.5 ms)
+  [   9.22s] TRIÂNGULO -> B (8.4 ms)
+  [  12.22s] TRIÂNGULO -> B (12.8 ms)
+  [  13.85s] TRIÂNGULO -> B (12.4 ms)
+  [  15.89s] TRIÂNGULO -> B (9.6 ms)
+  [  17.95s] TRIÂNGULO -> B (9.3 ms)
+  [  19.95s] TRIÂNGULO -> B (3.8 ms)
+  [  20.21s] TRIÂNGULO -> B (2.2 ms)
+  [  21.85s] TRIÂNGULO -> B (4.6 ms)
+  [  24.18s] TRIÂNGULO -> B (9.6 ms)
+  [  26.18s] TRIÂNGULO -> B (8.3 ms)
+  [  29.61s] TRIÂNGULO -> B (1.8 ms)
+Sem TXT/total esperado; sequência detectada: QUADRADO_COM_X, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO
+
+Processando pi\tests\videos\triangulo05.mp4...
+  [   4.63s] TRIÂNGULO -> B (8.7 ms)
+  [   7.06s] TRIÂNGULO -> B (8.3 ms)
+  [   9.22s] QUADRADO -> A (8.9 ms)
+  [  11.96s] TRIÂNGULO -> B (9.8 ms)
+  [  13.99s] TRIÂNGULO -> B (8.1 ms)
+  [  16.19s] QUADRADO -> A (11.1 ms)
+  [  19.05s] TRIÂNGULO -> B (8.1 ms)
+  [  21.11s] TRIÂNGULO -> B (7.2 ms)
+  [  23.08s] TRIÂNGULO -> B (8.6 ms)
+  [  25.74s] TRIÂNGULO -> B (8.4 ms)
+  [  28.54s] TRIÂNGULO -> B (8.5 ms)
+Sem TXT/total esperado; sequência detectada: TRIANGULO, TRIANGULO, QUADRADO, TRIANGULO, TRIANGULO, QUADRADO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO, TRIANGULO
+
+TOTAL
+esperadas=80 detectadas=79 corretas=76 incorretas=2 perdidas=2 extras=1 acerto=95.0%
+
+Sem gabarito: quadrado01.mp4, quadrado02.mp4, quadrado03.mp4, quadrado04.mp4, quadrado05.mp4, quadrado_com_x01.mp4, quadrado_com_x02.mp4, quadrado_com_x03.mp4, quadrado_com_x04.mp4, quadrado_com_x05.mp4, triangulo01.mp4, triangulo02.mp4, triangulo03.mp4, triangulo04.mp4, triangulo05.mp4. Use --total-classe N para avaliá-los.
+Relatório CSV salvo em C:\Users\Kaká\Documents\Claylton\TCC-PNAAT\docs\evidencias\avaliacao-videos.csv

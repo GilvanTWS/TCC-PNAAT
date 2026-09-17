@@ -9,6 +9,8 @@
 
 static const char *TAG = "tria_esp";
 
+/* Executado na tarefa MQTT: os textos de decisao valem apenas nesta chamada.
+ * O retorno confirma comando + espera, sem sensor de posição do SG90. */
 static esp_err_t processar_decisao(const tria_decision_t *decisao, void *context)
 {
     ESP_RETURN_ON_ERROR(tria_actuator_move(decisao->destino),
@@ -68,6 +70,8 @@ void app_main(void)
                                       CONFIG_TRIA_OLED_POWER_GPIO));
     tria_display_show("TRIA - ESP32", "Iniciando...", "");
 
+    /* Inicializa saídas antes da rede. A esteira começa no duty configurado;
+     * fan começa desligada. Perder MQTT não para automaticamente os motores. */
     ESP_ERROR_CHECK(tria_actuator_start(&actuator_config));
     ESP_ERROR_CHECK(vibration_start(&vibration_config));
     ESP_ERROR_CHECK(conveyor_start(&conveyor_config));

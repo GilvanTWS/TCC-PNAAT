@@ -3,6 +3,8 @@
 #include "driver/ledc.h"
 #include "esp_check.h"
 
+/* Faixa elétrica do gerador. Calibrar os limites mecânicos do SG90/aletagem;
+ * aceitar 0..180 no software não garante que a bancada suporte todo o curso. */
 #define SERVO_FREQUENCY_HZ       50
 #define SERVO_MIN_PULSE_US       500
 #define SERVO_MAX_PULSE_US       2500
@@ -32,7 +34,7 @@ esp_err_t servo_init(int gpio)
         .channel = servo_channel,
         .intr_type = LEDC_INTR_DISABLE,
         .timer_sel = servo_timer,
-        .duty = 0,
+        .duty = 0, /* Sem pulsos até o primeiro comando de destino. */
         .hpoint = 0,
     };
     ESP_RETURN_ON_ERROR(ledc_channel_config(&channel_config), "servo", "Falha ao configurar canal");
@@ -46,6 +48,8 @@ esp_err_t servo_set_angle(int angle)
     ESP_RETURN_ON_FALSE(servo_initialized, ESP_ERR_INVALID_STATE, "servo", "Servo nao inicializado");
     ESP_RETURN_ON_FALSE(angle >= 0 && angle <= 180, ESP_ERR_INVALID_ARG, "servo", "Angulo invalido");
 
+    /* Interpola graus em microssegundos, depois converte ao contador LEDC.
+     * A/B/C a 45/90/135 graus geram 1000/1500/2000 us a cada 20 ms. */
     const uint32_t pulse_us = SERVO_MIN_PULSE_US
                             + ((SERVO_MAX_PULSE_US - SERVO_MIN_PULSE_US) * angle) / 180;
     const uint32_t duty = (pulse_us * SERVO_MAX_DUTY) / SERVO_PERIOD_US;

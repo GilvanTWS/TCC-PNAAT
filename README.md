@@ -58,15 +58,17 @@ O broker participa da atuação; o dashboard apenas monitora. A câmera pressup�
 
 | Caminho | Responsabilidade |
 |---|---|
-| [docs/](docs/) | Apostila, cenário, requisitos e roteiro do pitch |
+| [docs/](docs/) | Referências, [montagem e ficha física](docs/hardware/MONTAGEM.md), [guia do código](docs/DESENVOLVIMENTO.md) e [evidências de testes](docs/VALIDACAO.md) |
 | [pi/main.py](pi/main.py) | Captura, ROI, ciclo de passagem e visualização |
 | [pi/classifier.py](pi/classifier.py) | Segmentação e classificação geométrica |
+| [pi/image_io.py](pi/image_io.py) | Leitura/escrita de imagens com caminhos acentuados |
 | [pi/mqtt_publisher.py](pi/mqtt_publisher.py) | Publicação de decisões e menu de teste |
 | [pi/config.py](pi/config.py) e [requirements.txt](pi/requirements.txt) | Parâmetros e dependências Python |
 | [pi/tests/](pi/tests/) e [evaluate_videos.py](pi/evaluate_videos.py) | Testes, imagens, vídeos e avaliação por gabarito |
 | [tria-esp/main/](tria-esp/main/) | Inicialização, menuconfig e manifesto de dependências |
 | [tria-esp/components/](tria-esp/components/) | Módulos `servo`, `tria_actuator`, `vibration`, `conveyor`, `tria_network` e `tria_display` |
 | [tria-esp/dependencies.lock](tria-esp/dependencies.lock) | Versões resolvidas: ESP-IDF 5.5.5 e u8g2 0.1.4 |
+| [tria-esp/sdkconfig.defaults](tria-esp/sdkconfig.defaults) | Perfil inicial da bancada, com GPIOs e PWM de 65%, sem credenciais |
 | [ming/docker-compose.yml](ming/docker-compose.yml) | Serviços, rede e volumes MING |
 | [ming/nodered/flows.json](ming/nodered/flows.json) | Validação, deduplicação e gravação no banco |
 | [ming/grafana/](ming/grafana/) | Fonte InfluxDB e dashboard provisionados |
@@ -84,14 +86,14 @@ O broker participa da atuação; o dashboard apenas monitora. A câmera pressup�
 | 1 conjunto | Esteira e transistor | Motor DC de **5 V** e **2N2222A** |
 | 1 conjunto | Vibrador e transistor | Fan de **12 V** e **TIP120** |
 | 2 de cada | Resistores e diodos | **2 kΩ** em cada base; um diodo de proteção por carga |
-| 1 | Microservo de **9 g** | Alimentação prevista de 5 V, a confirmar pelo modelo |
+| 1 | Microservo **SG90 de 9 g** | Alimentação externa regulada de 5 V; sinal no GPIO 47 |
 | Conforme cargas | Fontes reguladas | 5 V e 12 V, dimensionadas para partida e operação simultânea |
 | 1 conjunto | Mecânica de MDF | Plataforma, limitador de altura, rampa, aleta e três saídas |
 | 1 conjunto | Peças de ensaio | Placas de MDF com quadrado, triângulo e X contrastantes |
 | Conforme montagem | Apoio | Fios/conectores, fixação, suporte da câmera, luz difusa e fundo fosco |
 | 1 de cada | Infraestrutura | Rede local, computador de apoio e multímetro |
 
-As tensões, os transistores, os resistores e a presença dos diodos foram informados pela equipe. Correntes das cargas e modelos exatos de diodos/servo ainda precisam ser registrados.
+Tensões, transistores, resistores, diodos presentes, **SG90** e **PWM de 65%** foram confirmados pela equipe. A [ficha versionada](docs/hardware/bancada.json) registra esses dados e os campos ainda sem medição: correntes, modelos dos diodos e dimensões.
 
 ### 3.2 Alimentação e GPIOs
 
@@ -115,23 +117,9 @@ Preserve as ligações internas do botão e OLED. Confira a revisão no [pinout 
 
 Os dois estágios usam a mesma topologia: transistor como chave no negativo da carga. **B = base; C = coletor; E = emissor; K = cátodo; A = ânodo.**
 
-```text
-                         +V da fonte da carga
-                                  |
-                         +--------+--------+
-                         |                 |
-                      (+) CARGA        K (faixa)
-                      (-)                  D
-                         |                 A
-                         |                 |
-                         +--------+--------+
-                                  |
-                                  C
-GPIO ---- resistor de 2 kohm ---- B  transistor
-                                  E
-                                  |
-GND Heltec -----------------------+---- negativo da fonte
-```
+![Esquema elétrico completo: Heltec, motores, transistores, diodos, SG90 e fontes](docs/hardware/esquema-eletrico.svg)
+
+[Abrir esquema vetorial](docs/hardware/esquema-eletrico.svg) · [Conferência elétrica e medidas mecânicas](docs/hardware/MONTAGEM.md). Os blocos B/C/E identificam funções elétricas, não a ordem física das pernas dos transistores.
 
 | Ligação | Esteira: Q1 = 2N2222A, D1 | Fan: Q2 = TIP120, D2 |
 |---|---|---|
@@ -155,7 +143,7 @@ Confira B/C/E no datasheet do componente real. O [2N2222A da ST](https://www.st.
 | GND, normalmente marrom/preto | **GND comum** |
 | Sinal, normalmente laranja/amarelo | **GPIO 47** |
 
-Confirme cores e tensão do modelo: “9 g” informa o peso. O firmware gera 500–2500 µs para 0–180°; A/B/C em 45°/90°/135° correspondem a aproximadamente 1000/1500/2000 µs. Teste sem a aleta presa, evitando batentes. O [guia complementar do servo](tria-esp/LIGACAO_MICRO_SERVO.md) detalha a alimentação; seu exemplo antigo de definição do GPIO foi substituído pelo menuconfig.
+O modelo é **SG90**; confirme a identificação dos fios no exemplar instalado. O firmware gera 500–2500 µs para 0–180°; A/B/C em 45°/90°/135° correspondem a aproximadamente 1000/1500/2000 µs. Teste sem a aleta presa, evitando batentes. O [guia do servo](tria-esp/LIGACAO_MICRO_SERVO.md) detalha a ligação e a configuração pelo menuconfig.
 
 1. Fixe a fan sob a plataforma, transferindo a vibração ao MDF e protegendo partes girantes e fios.
 2. Ajuste o teto de saída para passar uma placa e impedir duas empilhadas. Para espessura uniforme `t`, a folga deve ficar entre `t` e `2t`, considerando tolerâncias.
@@ -163,7 +151,7 @@ Confirme cores e tensão do modelo: “9 g” informa o peso. O firmware gera 50
 4. Fixe a câmera fora da estrutura vibratória, com luz difusa e placa inteira visível na ROI.
 5. Instale a aleta e identifique A/B/C. Reserve distância **após a saída da ROI** e espaçamento entre peças para completar a atuação.
 
-Registre dimensões das peças, folgas, rampa, altura da câmera e distância até a aleta: os arquivos de corte e as medidas da bancada não estão versionados.
+O [guia de medição](docs/hardware/MONTAGEM.md#medidas-da-estrutura) indica as cotas necessárias. A observação “rampa da altura do MDF” está preservada na ficha, mas não define uma medida em milímetros. As dimensões e os arquivos de corte ainda dependem de levantamento físico.
 
 ## 4. Preparação do ambiente
 
@@ -273,12 +261,12 @@ Confirme a versão **5.5.5**. Use `set-target` na preparação inicial; ele pode
 |---|---|
 | TRIA - Rede | SSID, senha, `mqtt://IP_DO_HOST_MING:1883` e ID `esp32-tria-01` |
 | TRIA - Vibracao | PRG **GPIO 0**, fan **GPIO 7**, debounce **30 ms** |
-| TRIA - Esteira | **GPIO 6**; velocidade conforme ensaio |
+| TRIA - Esteira | **GPIO 6**; duty operacional **65%** |
 | TRIA - Atuação (servo) | **GPIO 47**; A/B/C = **45°/90°/135°**; estabilização **500 ms** |
 | TRIA - OLED | SDA/SCL/reset/Vext = **17/18/21/36** |
 | TRIA - Watchdog de comunicação | Timeout **15 s**; intervalo de status **30 s** |
 
-**PWM da esteira:** o código vem com **100%**. A equipe informou aproximadamente **65%** para a bancada; confirme por calibração. Use **0%** no primeiro teste elétrico para manter a esteira parada.
+**PWM da esteira:** **65%**, confirmado pela equipe e versionado em `Kconfig.projbuild` e `sdkconfig.defaults`. Uma configuração `sdkconfig` existente tem precedência: confira o valor no menu e no monitor serial. Use **0%** no primeiro teste elétrico; depois retorne a 65%, compile e grave novamente.
 
 ```bash
 idf.py build
@@ -431,6 +419,8 @@ QoS 1 admite reentregas. Publique decisões **sem retenção**, evitando comando
 
 ### 8.1 Vídeos e avaliação automática
 
+A [validação registrada](docs/VALIDACAO.md) inclui **12 testes aprovados** e **76 acertos em 80 peças esperadas (95%)** nos cinco vídeos mistos com gabarito. Há duas trocas, duas perdas e um evento extra; esses resultados não substituem o aceite físico. O [ambiente de teste com versões fixas](pi/requirements-test.txt) permite repetir a avaliação em computador sem câmera.
+
 Na pasta `pi`, com o venv ativo, escolha um modo:
 
 ```bash
@@ -507,7 +497,7 @@ Exclua do intervalo os comandos manuais de teste. Imagens, vídeos e testes vers
 | Aspecto | Condição da implementação |
 |---|---|
 | Escopo | PoC com três símbolos em MDF; sem certificação industrial, peças arbitrárias, Deep Learning, CLP/MES/ERP ou uso do rádio LoRa |
-| Montagem | Correntes, modelos exatos dos diodos/servo e dimensões mecânicas precisam ser registrados; PWM de 65% é aproximado |
+| Montagem | SG90 e PWM de 65% confirmados; correntes, modelos dos diodos e dimensões ainda pendentes na [ficha física](docs/hardware/bancada.json) |
 | Atuação | Sem sensor de posição, agendamento ou rastreamento de múltiplas peças; depende da calibração e do espaçamento |
 | Falhas | Não há parada automática dos motores por falha de rede. Classificação inválida não aciona descarte |
 | Deduplicação/validação | Node-RED guarda os últimos 100 IDs em memória; ESP32 não deduplica nem valida integralmente classe/destino/defeito |
@@ -517,7 +507,7 @@ Exclua do intervalo os comandos manuais de teste. Imagens, vídeos e testes vers
 
 ### 10.2 Registro para reproduzir o ensaio
 
-Guarde **revisão Git, versões, calibração e resultados reais**. O firmware tem lock; Python usa versões mínimas e o Compose usa tags mutáveis, incluindo `latest` para Node-RED e Grafana. Para reproduzir a mesma combinação, registre:
+Guarde **revisão Git, versões, calibração e resultados reais**. O firmware tem lock e perfil versionado; a avaliação offline tem [dependências fixas e evidências](docs/VALIDACAO.md). O ambiente Pi usa versões mínimas e o Compose usa tags mutáveis, incluindo `latest` para Node-RED e Grafana. Para reproduzir a mesma combinação, registre:
 
 | Onde | Comandos / informações |
 |---|---|

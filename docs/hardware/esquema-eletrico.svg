@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1020" viewBox="0 0 1440 1020" role="img" aria-labelledby="title desc">
+  <title id="title">TRIA — esquema de interligação elétrica</title>
+  <desc id="desc">Heltec V3: GPIO 6 por resistor de 2 quilohms à base do 2N2222A, chaveando motor de 5 volts; GPIO 7 por resistor de 2 quilohms à base do TIP120, chaveando fan de 12 volts. Emissores no terra comum. Diodos em paralelo às cargas, cátodos no positivo. SG90: sinal GPIO 47, alimentação externa de 5 volts e terra comum. B, C e E indicam função, não ordem física dos terminais.</desc>
+  <defs>
+    <style>
+      text {font-family:Arial, sans-serif;fill:#163048;font-size:19px}
+      .title {font-size:34px;font-weight:bold}.head {font-size:24px;font-weight:bold}
+      .small {font-size:17px}.note {font-size:18px;fill:#42566b}
+      .wire {fill:none;stroke:#263b50;stroke-width:3;stroke-linejoin:round}
+      .signal {fill:none;stroke:#156ac5;stroke-width:3}
+      .p5 {fill:none;stroke:#bf3342;stroke-width:3}
+      .p12 {fill:none;stroke:#a86200;stroke-width:3}
+      .box {fill:white;stroke:#263b50;stroke-width:2}
+      .junction {fill:#263b50}
+      .label {fill:#156ac5;font-weight:bold}
+    </style>
+  </defs>
+  <rect width="1440" height="1020" fill="#f6f8fc"/>
+  <text x="40" y="55" class="title">TRIA / Interligação elétrica</text>
+  <text x="40" y="89" class="note">Folha 1 · Topologia para reprodução · GPIOs conferidos no firmware · Componentes informados pela equipe</text>
+  <rect x="40" y="120" width="1360" height="48" rx="8" fill="#e4edf8"/>
+  <text x="60" y="151">B/C/E = base/coletor/emissor. K/A = cátodo/ânodo. Rótulos azuis iguais representam o mesmo fio.</text>
+
+  <rect x="40" y="195" width="300" height="385" rx="12" class="box"/>
+  <text x="62" y="235" class="head">U1 · Heltec V3</text>
+  <text x="62" y="265" class="note">ESP32-S3 · USB</text>
+  <text x="62" y="305">IO6 · PWM 20 kHz</text>
+  <path d="M280 320 H365" class="signal"/><text x="285" y="310" class="label">GPIO6</text>
+  <text x="62" y="362">IO7 · liga/desliga</text>
+  <path d="M280 377 H365" class="signal"/><text x="285" y="367" class="label">GPIO7</text>
+  <text x="62" y="419">IO47 · PWM 50 Hz</text>
+  <path d="M280 434 H365" class="signal"/><text x="285" y="424" class="label">GPIO47</text>
+  <text x="62" y="480" class="small">PRG: IO0, integrado</text>
+  <text x="62" y="508" class="small">OLED: 17 / 18 / 21 / 36</text>
+  <text x="155" y="556">GND</text>
+  <path d="M180 580 V790" class="wire"/>
+
+  <text x="450" y="200" class="head">M1 · Esteira</text>
+  <text x="950" y="200" class="head">M2 · Fan vibratória</text>
+  <path d="M570 250 H820 M650 250 V285 M820 250 V310" class="p5"/>
+  <text x="525" y="238" style="fill:#bf3342">+5 V · fonte da esteira</text>
+  <circle cx="650" cy="320" r="35" class="box"/>
+  <text x="636" y="327" class="head">M</text>
+  <text x="594" y="280">+</text><text x="594" y="371">−</text>
+  <path d="M650 355 V460 M650 400 H820 V365" class="wire"/>
+  <rect x="805" y="310" width="30" height="55" class="box"/>
+  <path d="M805 319 H835" class="wire"/>
+  <text x="842" y="326" class="small">K / faixa</text>
+  <text x="842" y="360" class="small">A</text>
+  <text x="763" y="348">D1</text>
+  <circle cx="650" cy="250" r="5" class="junction"/><circle cx="650" cy="400" r="5" class="junction"/>
+  <rect x="590" y="460" width="120" height="130" rx="6" class="box"/>
+  <text x="630" y="485">C</text><text x="600" y="535">B</text><text x="632" y="577">E</text>
+  <text x="731" y="502" class="head">Q1</text><text x="731" y="534">2N2222A</text>
+  <path d="M430 530 H475 M535 530 H590" class="signal"/>
+  <rect x="475" y="519" width="60" height="22" class="box"/>
+  <text x="428" y="492" class="label">GPIO6</text><text x="477" y="566" class="small">R1 · 2 kΩ</text>
+  <path d="M650 590 V790" class="wire"/>
+  <text x="690" y="639" class="small">PWM: 65%</text>
+  <text x="690" y="666" class="note">Duty confirmado</text>
+
+  <path d="M1040 250 H1290 M1120 250 V285 M1290 250 V310" class="p12"/>
+  <text x="1020" y="238" style="fill:#a86200">+12 V · fonte da fan</text>
+  <circle cx="1120" cy="320" r="35" class="box"/>
+  <text x="1106" y="327" class="head">M</text>
+  <text x="1064" y="280">+</text><text x="1064" y="371">−</text>
+  <path d="M1120 355 V460 M1120 400 H1290 V365" class="wire"/>
+  <rect x="1275" y="310" width="30" height="55" class="box"/>
+  <path d="M1275 319 H1305" class="wire"/>
+  <text x="1312" y="326" class="small">K / faixa</text>
+  <text x="1312" y="360" class="small">A</text>
+  <text x="1233" y="348">D2</text>
+  <circle cx="1120" cy="250" r="5" class="junction"/><circle cx="1120" cy="400" r="5" class="junction"/>
+  <rect x="1060" y="460" width="120" height="130" rx="6" class="box"/>
+  <text x="1100" y="485">C</text><text x="1070" y="535">B</text><text x="1102" y="577">E</text>
+  <text x="1201" y="502" class="head">Q2</text><text x="1201" y="534">TIP120</text>
+  <text x="1201" y="562" class="small">Darlington NPN</text>
+  <path d="M920 530 H945 M1005 530 H1060" class="signal"/>
+  <rect x="945" y="519" width="60" height="22" class="box"/>
+  <text x="918" y="492" class="label">GPIO7</text><text x="947" y="566" class="small">R2 · 2 kΩ</text>
+  <path d="M1120 590 V790" class="wire"/>
+  <text x="1160" y="639" class="small">Comando digital</text>
+  <text x="1160" y="666" class="note">Alternado pelo PRG</text>
+
+  <rect x="295" y="625" width="270" height="125" rx="8" class="box"/>
+  <text x="315" y="656" class="head">S1 · SG90 / 9 g</text>
+  <text x="315" y="684" class="small">Sinal</text><path d="M375 680 H560" class="signal"/>
+  <text x="425" y="674" class="label">GPIO47</text>
+  <text x="315" y="716" class="small">VCC</text><path d="M375 711 H560" class="p5"/>
+  <text x="423" y="705" style="fill:#bf3342;font-size:17px">+5 V externo</text>
+  <text x="452" y="740" class="small">GND</text><path d="M480 750 V790" class="wire"/>
+  <path d="M75 790 H1350 M75 790 V817 M60 817 H90 M65 825 H85 M70 833 H80" class="wire"/>
+  <circle cx="180" cy="790" r="5" class="junction"/><circle cx="480" cy="790" r="5" class="junction"/>
+  <circle cx="650" cy="790" r="5" class="junction"/><circle cx="1120" cy="790" r="5" class="junction"/>
+  <text x="115" y="824" class="head">GND comum</text>
+  <text x="345" y="824">Negativos das fontes externas + GND Heltec + GND SG90 + emissores Q1/Q2</text>
+
+  <rect x="40" y="856" width="1360" height="133" rx="10" fill="#e9eef5"/>
+  <text x="60" y="885" class="note">1. D1/D2: diodos em paralelo às cargas, faixa no positivo. Modelos e correntes ainda precisam de identificação.</text>
+  <text x="60" y="914" class="note">2. Blocos Q1/Q2 mostram funções dos terminais; conferir a ordem física B/C/E no datasheet do exemplar instalado.</text>
+  <text x="60" y="943" class="note">3. Não unir positivos de fontes independentes. Pi/câmera usam alimentação própria e comunicam-se por Wi-Fi/MQTT.</text>
+  <text x="60" y="972" class="note">4. Montar desenergizado. Conferir a fiação real e dimensionar fontes/diodos antes do ensaio; ver MONTAGEM.md.</text>
+</svg>

@@ -34,6 +34,8 @@ static void vibration_task(void *arg)
         const int reading = gpio_get_level(vibration_config.button_gpio);
         const TickType_t now = xTaskGetTickCount();
 
+        /* Reinicia a janela a cada oscilação do contato. Só uma transição
+         * estável para zero alterna a fan; segurar PRG não repete a ação. */
         if (reading != last_reading) {
             last_reading = reading;
             last_change = now;
@@ -47,6 +49,7 @@ static void vibration_task(void *arg)
             }
         }
 
+        /* Libera CPU para rede/display durante a espera entre leituras. */
         vTaskDelay(pdMS_TO_TICKS(POLL_INTERVAL_MS));
     }
 }

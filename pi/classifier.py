@@ -14,6 +14,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from image_io import ler_imagem, salvar_imagem
+
 from config import (
     AREA_MARCA_NORMALIZADA_MIN,
     AREA_PECA_FRAME_MAX,
@@ -75,7 +77,10 @@ def count_vertices(contour, epsilon_ratio=0.03):
 
 
 def _ordenar_cantos(pontos):
-    """Ordena quatro pontos em: superior esquerdo, superior direito, etc."""
+    """Ordena cantos: superior esquerdo/direito, inferior direito/esquerdo.
+
+    A mesma ordem na origem e no destino evita espelhar a placa na retificação.
+    """
     pontos = np.asarray(pontos, dtype=np.float32)
     soma = pontos.sum(axis=1)
     diferenca = np.diff(pontos, axis=1).ravel()
@@ -99,6 +104,8 @@ def _mascara_mdf(image):
         np.array(HSV_MDF_MAX, dtype=np.uint8),
     )
 
+    # Fechamento proporcional ao quadro une a superfície do MDF; o kernel
+    # ímpar preserva um centro. A abertura seguinte remove pontos isolados.
     lado_kernel = max(3, int(round(min(image.shape[:2]) * 0.012)) | 1)
     kernel = np.ones((lado_kernel, lado_kernel), np.uint8)
     mascara = cv2.morphologyEx(
@@ -114,7 +121,9 @@ def localizar_peca_mdf(image):
     Localiza uma placa de MDF totalmente visível no quadro.
 
     Retorna um dicionário com o contorno, os quatro cantos no tamanho original
-    e a placa retificada em 400x400. Retorna None quando não há peça.
+    e a placa BGR retificada no tamanho de config.py (400x400 por padrão).
+    A máscara mantém a escala reduzida; box/contour usam pixels da entrada.
+    Retorna None quando não há candidata. Pressupõe uma peça por vez na ROI.
     """
     if image is None or image.size == 0:
         return None
@@ -171,6 +180,7 @@ def localizar_peca_mdf(image):
     if not candidatos:
         return None
 
+    # Seleciona a maior candidata; isto não separa duas placas sobrepostas.
     area, contour, rect = max(candidatos, key=lambda item: item[0])
     cantos_reduzidos = _ordenar_cantos(cv2.boxPoints(rect))
 
@@ -227,6 +237,11 @@ def _segmentar_marca(peca_normalizada):
 
 
 def _classificar_marca(contour):
+    """Aplica regras geométricas; 0.95 é um escore fixo, não probabilidade.
+
+    A precisão real deve ser medida contra gabaritos, nunca inferida do escore.
+    Solidez = área / área do casco convexo: concavidades reduzem esse valor.
+    """
     area = cv2.contourArea(contour)
     perimetro = cv2.arcLength(contour, True)
     if area <= 0 or perimetro <= 0:
@@ -236,7 +251,7 @@ def _classificar_marca(contour):
     casco = cv2.convexHull(contour)
     solidez = area / max(1.0, cv2.contourArea(casco))
 
-    # O X retificado é fortemente côncavo e possui oito pontas externas.
+    # O contorno do X apresenta concavidades e mais vértices que os polígonos.
     if vertices >= 6 and solidez < 0.75:
         return "QUADRADO_COM_X", 0.95, vertices, solidez
     if vertices == 3 and solidez >= 0.80:
@@ -346,9 +361,8 @@ def classificar_sequencia_normalizada(pecas_normalizadas):
             "mascara_marca": melhor_mascara,
         }
 
-    # Uma ocupação central muito alta só ocorre no cruzamento dos dois traços
-    # do X. Esse atalho também cobre quadros em que uma sombra prejudica o
-    # contorno externo, mas o centro da gravação continua nítido.
+    # Nos símbolos de referência, o cruzamento do X ocupa o centro. Os limiares
+    # são heurísticos: uma mancha/sombra central também pode acionar esta regra.
     if preenchimento_centro > 0.20:
         return resultado_x()
 
@@ -396,7 +410,11 @@ def classificar_sequencia_normalizada(pecas_normalizadas):
 
 
 def classify_image(image):
-    """Classifica diretamente um frame BGR do OpenCV."""
+    """Classifica um frame BGR; retorna classe ou erro, sempre com status.
+
+    Arrays de diagnóstico não são serializáveis em JSON. O main seleciona os
+    campos escalares para o evento MQTT; a sequência de vídeo tem fluxo próprio.
+    """
     peca = localizar_peca_mdf(image)
     if peca is None:
         return {"erro": "Nenhuma peça de MDF detectada", "status": "sem_peca"}
@@ -442,7 +460,7 @@ def classify_image(image):
 def classify_single(image_path, limiar_binarizacao=0, epsilon_ratio=0.03):
     """Carrega uma imagem e a classifica; argumentos antigos são compatíveis."""
     del limiar_binarizacao, epsilon_ratio
-    image = cv2.imread(str(image_path))
+    image = ler_imagem(image_path)
     if image is None:
         return {"erro": f"Não foi possível carregar: {image_path}", "status": "erro"}
     return classify_image(image)
@@ -472,7 +490,7 @@ def get_destino(classe):
 
 def annotate_image(image_path, output_path=None):
     """Desenha a placa detectada e o resultado sobre a imagem original."""
-    image = cv2.imread(str(image_path))
+    image = ler_imagem(image_path)
     if image is None:
         return None
 
@@ -498,5 +516,5 @@ def annotate_image(image_path, output_path=None):
     if output_path:
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
-        cv2.imwrite(str(output), image)
+        salvar_imagem(output, image)
     return image

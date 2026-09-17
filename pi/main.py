@@ -6,9 +6,9 @@ Fluxo (seção 2.1 do Levantamento):
   1. Capture os quadros com Picamera2 (câmera CSI fixa).
   2. Detecte quando uma nova peça entra na região de interesse (ROI),
      sem sensor de presença.
-  3. Classifique a peça UMA vez (deduplicação) com OpenCV.
-  4. Gere evento, publique a decisão por MQTT e calcule o instante de atuação.
-  5. Libere a detecção da próxima peça somente após a peça sair da ROI.
+  3. Colete amostras até confirmar a saída; classifique a passagem UMA vez.
+  4. Publique por MQTT somente uma classificação válida e libere a próxima peça.
+     O campo instante_atuacao é informativo: o ESP32 atua ao receber a decisão.
 
 Uso:
   python main.py                    # câmera ao vivo + janela de visualização
@@ -18,9 +18,8 @@ Uso:
   python main.py --video teste.mp4  # reproduz um ensaio gravado
   python main.py --sem-janela       # execução sem interface gráfica
 
-Requisitos dos critérios atendidos aqui:
-  RF01 (passagem/captura), RF04 (MQTT), RF05/RNF01 (instante de atuação),
-  RNF05 (não duplicar contagens - um evento por peça na ROI).
+Requisitos relacionados: RF01 (captura), RF04 (MQTT) e RNF05 (contagem).
+O aceite físico de RF05/RNF01 exige medir a chegada ao servo na bancada.
 """
 
 import argparse
@@ -33,6 +32,8 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import cv2
+
+from image_io import ler_imagem
 
 from classifier import (
     classificar_sequencia_normalizada,
@@ -57,7 +58,11 @@ except ImportError:
 
 
 class MaquinaDeEstados:
-    """Máquina de estados da detecção de passagem na ROI."""
+    """Controla uma passagem; pressupõe intervalo livre entre peças.
+
+    total_eventos conta entradas confirmadas, inclusive as que depois falham
+    na classificação. Não é a quantidade de publicações confirmadas pelo broker.
+    """
 
     def __init__(self):
         self.estado = "livre"       # livre | ocupado_aguardando | ocupado_classificado
@@ -393,7 +398,10 @@ def main_loop(
 ):
     """
     Loop principal: detecta passagem, classifica e publica via MQTT.
-    Cada peça gera no máximo um evento (RNF05).
+    Cada passagem confirmada gera no máximo um evento local (RNF05); QoS 1
+    ainda pode reenviá-lo na rede. Três quadros ausentes encerram a passagem.
+    As amostras permanecem em memória até a saída; uma peça parada por tempo
+    indefinido na ROI exige intervenção do operador.
     """
     maquina = MaquinaDeEstados()
     frame_atual = capturar_quadro(camera)
@@ -455,6 +463,8 @@ def main_loop(
                 and maquina.ao_detectar_peca()
             ):
                 nova_peca = True
+                # Preserva os quadros usados na confirmação de entrada, sem
+                # acrescentar novamente o quadro atual ao iniciar a passagem.
                 amostras_peca = list(historico_presenca)
                 historico_presenca.clear()
                 print(f"\n[{time.strftime('%H:%M:%S')}] Peça {maquina.peca_atual} "
@@ -537,7 +547,7 @@ def main_loop(
 
 def modo_simulacao(imagem_path, roi=None):
     """Modo de teste sem câmera: classifica uma imagem já salva."""
-    frame = cv2.imread(imagem_path)
+    frame = ler_imagem(imagem_path)
     if frame is None:
         print(f"Erro: não foi possível carregar {imagem_path}")
         sys.exit(1)
@@ -840,7 +850,7 @@ def main():
     roi_configurada = tuple(args.roi) if args.roi else None
 
     if args.imagem:
-        frame = cv2.imread(args.imagem)
+        frame = ler_imagem(args.imagem)
         if frame is None:
             print(f"Erro: não foi possível carregar {args.imagem}")
             return 1

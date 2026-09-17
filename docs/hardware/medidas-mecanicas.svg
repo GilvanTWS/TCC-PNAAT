@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="550" viewBox="0 0 1200 550" role="img" aria-labelledby="title desc">
+<title id="title">TRIA — referências para medição da bancada</title>
+<desc id="desc">Vista lateral sem escala. Medir vão do limitador, desnível da rampa, altura da câmera sobre a esteira e distância da saída da região de inspeção até a aleta. Dimensões reais ainda não informadas.</desc>
+<defs><style>text{font-family:Arial,sans-serif;fill:#163048;font-size:19px}.label{font-size:17px}.dim{stroke:#156ac5;stroke-width:2;fill:none;marker-start:url(#a);marker-end:url(#a)}.line{stroke:#263b50;stroke-width:3;fill:none}</style>
+<marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M10 5 L0 0 L0 10Z" fill="#156ac5"/></marker></defs>
+<rect width="1200" height="550" fill="#f6f8fc"/>
+<text x="35" y="48" style="font-size:28px;font-weight:bold">Medição mecânica / vista lateral</text>
+<text x="35" y="80">Sem escala · cotas simbólicas · não utilizar como arquivo de corte</text>
+<path d="M70 320 H285 L420 380 H1090" class="line"/>
+<rect x="450" y="381" width="640" height="32" rx="15" fill="#c6d0db" stroke="#263b50" stroke-width="2"/>
+<rect x="130" y="303" width="50" height="17" fill="#cfa477"/>
+<path d="M215 285 H285" class="line"/>
+<text x="55" y="364">Plataforma</text><text x="192" y="248" class="label">Limitador</text>
+<path d="M260 291 V315" class="dim"/><text x="290" y="301" class="label">Vão livre</text>
+<path d="M385 326 V374" class="dim"/><text x="320" y="446" class="label">Desnível da rampa</text>
+<path d="M70 475 H1090" class="line"/><text x="73" y="505">Base: comprimento, largura e espessura</text>
+<rect x="646" y="140" width="80" height="50" rx="6" fill="#dbe9fa" stroke="#263b50" stroke-width="2"/>
+<text x="645" y="125">Câmera</text><path d="M666 190 L615 380 M706 190 L760 380" stroke="#a2b7cf" stroke-dasharray="5 5" fill="none"/>
+<rect x="615" y="365" width="145" height="15" fill="#cee4f9"/>
+<text x="665" y="350">ROI</text>
+<path d="M567 196 V374" class="dim"/><text x="446" y="270" class="label">Altura lente</text><text x="446" y="293" class="label">→ esteira</text>
+<path d="M1000 348 V381 L1050 358" stroke="#bf3342" stroke-width="6" fill="none"/><text x="985" y="328">Aleta</text>
+<path d="M760 215 V367 M1000 215 V344" stroke="#9eabb9" stroke-dasharray="5 5"/>
+<path d="M766 237 H994" class="dim"/><text x="798" y="217" class="label">Saída da ROI → aleta</text>
+<text x="739" y="436" class="label">Fluxo das peças →</text>
+<text x="680" y="505" class="label">Registrar também vistas superior e frontal.</text>
+</svg>

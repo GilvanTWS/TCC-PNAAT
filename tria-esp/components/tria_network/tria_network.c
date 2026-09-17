@@ -56,6 +56,8 @@ static void publish_status(bool connected)
 
 static void publish_confirmation(const tria_decision_t *decision)
 {
+    /* Preserva o ID para correlação. "estabilizado" significa espera cumprida,
+     * não realimentação física: o servo não possui sensor externo de posição. */
     char payload[192];
     snprintf(payload, sizeof(payload),
              "{\"id_evento\":\"%s\",\"classe\":\"%s\",\"destino\":\"%s\","
@@ -69,6 +71,7 @@ static void publish_confirmation(const tria_decision_t *decision)
 
 static bool topic_matches(const char *topic, int topic_length, const char *expected)
 {
+    /* Buffers recebidos do ESP-MQTT não precisam terminar em NUL. */
     return topic_length == strlen(expected) &&
            memcmp(topic, expected, topic_length) == 0;
 }
@@ -85,6 +88,8 @@ static bool parse_decision(const cJSON *document, tria_decision_t *decision)
         return false;
     }
 
+    /* Ponteiros emprestados do cJSON: válidos até cJSON_Delete(document).
+     * Um consumidor assíncrono teria de copiar os textos antes de retornar. */
     decision->id_evento = event_id->valuestring;
     decision->classe = class->valuestring;
     decision->destino = destination->valuestring;
@@ -144,6 +149,8 @@ static void mqtt_event_handler(void *args, esp_event_base_t base,
         break;
 
     case MQTT_EVENT_DATA:
+        /* Contrato atual: decisão curta em um evento. Não há remontagem de
+         * payload fragmentado nem deduplicação de IDs reenviados por QoS 1. */
         handle_decision(event->topic, event->topic_len,
                         event->data, event->data_len);
         break;
@@ -248,6 +255,8 @@ static void supervisor_task(void *args)
         vTaskDelay(pdMS_TO_TICKS(SUPERVISOR_INTERVAL_MS));
         const TickType_t now = xTaskGetTickCount();
 
+        /* Supervisiona decisões aceitas, não um heartbeat do Pi. Uma linha
+         * sem peças também vence o timeout, mesmo com Wi-Fi/MQTT conectados. */
         if (communication_ok && now - last_message > watchdog_timeout) {
             communication_ok = false;
             ESP_LOGW(TAG, "Tempo limite sem mensagem MQTT");
@@ -281,6 +290,7 @@ esp_err_t tria_network_start(const tria_network_config_t *config)
     ESP_RETURN_ON_FALSE(!initialized, ESP_ERR_INVALID_STATE, TAG,
                         "Componente ja iniciado");
 
+    /* Copia a estrutura, não as strings/contexto: devem durar toda a execução. */
     network_config = *config;
     ESP_RETURN_ON_ERROR(wifi_start(), TAG, "Falha ao iniciar Wi-Fi");
     ESP_RETURN_ON_ERROR(mqtt_start(), TAG, "Falha ao iniciar MQTT");

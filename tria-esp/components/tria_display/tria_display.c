@@ -38,6 +38,7 @@ esp_err_t tria_display_init(int sda_gpio, int scl_gpio,
     };
     ESP_RETURN_ON_ERROR(gpio_config(&power_config), "tria_display",
                         "Falha ao configurar alimentacao do OLED");
+    /* Vext da Heltec V3 é ativo em zero; aguarda a alimentação estabilizar. */
     ESP_RETURN_ON_ERROR(gpio_set_level(power_gpio, 0), "tria_display",
                         "Falha ao ligar alimentacao do OLED");
     vTaskDelay(pdMS_TO_TICKS(OLED_POWER_STABILIZATION_MS));
@@ -67,6 +68,8 @@ esp_err_t tria_display_init(int sda_gpio, int scl_gpio,
 
 void tria_display_show(const char *line_1, const char *line_2, const char *line_3)
 {
+    /* MQTT e supervisor podem chamar simultaneamente. Protege o ciclo inteiro
+     * de limpar/desenhar/enviar para não misturar duas telas no mesmo buffer. */
     if (!initialized || line_1 == NULL || line_2 == NULL || line_3 == NULL ||
         xSemaphoreTake(display_mutex, portMAX_DELAY) != pdTRUE) {
         return;

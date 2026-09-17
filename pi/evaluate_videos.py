@@ -46,7 +46,11 @@ def classe_pelo_nome(video_path):
 
 
 def alinhar_sequencias(esperada, detectada):
-    """Alinha sequências e distingue troca, perda e evento extra."""
+    """Alinha com custo unitário de troca, perda e inserção (Levenshtein).
+
+    Assim uma perda não transforma todas as peças seguintes em erros. Em
+    empates, prioriza igualdade, troca, perda e extra, nessa ordem.
+    """
     linhas = len(esperada) + 1
     colunas = len(detectada) + 1
     custo = [[0] * colunas for _ in range(linhas)]
@@ -97,6 +101,7 @@ def resumir(video, esperada, detectada, resultado_video):
         tipo: sum(1 for item in alinhamento if item[0] == tipo)
         for tipo in ("correta", "incorreta", "perdida", "extra")
     }
+    # Penaliza também detecções extras, em vez de premiar contagens duplicadas.
     denominador = max(len(esperada), len(detectada), 1)
     return {
         "video": Path(video).name,
