@@ -5,19 +5,29 @@ Projeto de Conclusão de Curso — Capacitação **PNAAT 2026** (Programa Nacion
 
 ## Sumário
 
-- [1. Visão Geral](#1-visão-geral)
-- [2. Arquitetura da PoC](#2-arquitetura-da-poc)
-- [3. Situação visual e destino](#3-situação-visual-e-destino)
-- [4. Estrutura do Repositório](#4-estrutura-do-repositório)
-- [5. Componentes](#5-componentes)
-- [6. Tópicos MQTT](#6-tópicos-mqtt)
-- [7. Payload MQTT](#7-payload-mqtt-triatriagem)
-- [8. Requisitos e Critérios de Aceite](#8-requisitos-e-critérios-de-aceite)
-- [9. Dependências](#9-dependências)
-- [10. Como Rodar](#10-como-rodar)
-- [11. Escopo](#11-escopo)
-- [12. Licença](#12-licença)
-- [13. Checklist de Conformidade](#13-checklist-de-conformidade)
+- [TRIA - Triagem Visual Integrada de Componentes](#tria---triagem-visual-integrada-de-componentes)
+  - [Sumário](#sumário)
+  - [1. Visão Geral](#1-visão-geral)
+  - [3. Situação visual e destino](#3-situação-visual-e-destino)
+  - [4. Estrutura do Repositório](#4-estrutura-do-repositório)
+  - [5. Componentes](#5-componentes)
+  - [6. Tópicos MQTT](#6-tópicos-mqtt)
+  - [7. Payload MQTT (tria/triagem)](#7-payload-mqtt-triatriagem)
+  - [8. Requisitos e Critérios de Aceite](#8-requisitos-e-critérios-de-aceite)
+    - [Funcionais](#funcionais)
+    - [Não-funcionais](#não-funcionais)
+  - [9. Dependências](#9-dependências)
+    - [Hardware](#hardware)
+    - [Software, bibliotecas e ferramentas](#software-bibliotecas-e-ferramentas)
+  - [10. Como Rodar](#10-como-rodar)
+    - [1. Classificador (Raspberry Pi)](#1-classificador-raspberry-pi)
+      - [Reproduzir e avaliar os vídeos de ensaio](#reproduzir-e-avaliar-os-vídeos-de-ensaio)
+    - [2. Stack MING](#2-stack-ming)
+    - [3. Firmware ESP32 (tria-esp)](#3-firmware-esp32-tria-esp)
+    - [Verificação inicial](#verificação-inicial)
+  - [11. Escopo](#11-escopo)
+  - [12. Licença](#12-licença)
+  - [13. Checklist de Conformidade](#13-checklist-de-conformidade)
 
 ## 1. Visão Geral
 
@@ -25,49 +35,6 @@ O **TRIA** é uma PoC física de triagem integrada com **visão computacional e 
 
 Na bancada atual, um **motor sob uma plataforma de papelão** movimenta as peças enquanto o operador mantém o botão do ESP32 pressionado. Elas caem na esteira, onde a câmera do Raspberry Pi captura as placas de MDF. O software reconhece o **símbolo central**, decide A/B/C e publica via MQTT para atuação do servo e geração de gráficos no Grafana.
 
-## 2. Arquitetura da PoC
-
-**Diagrama de blocos preliminar — percurso físico:**
-
-```text
-[Peças de MDF com símbolos]
-             |
-             v
-[Plataforma de papelão + motor vibratório]
-             | avanço e queda
-             v
-[Esteira: região de inspeção da câmera]
-             |
-             v
-[Servo / aleta desviadora] ---> [Saída A] [Saída B] [Saída C]
-```
-
-**Sensoriamento, processamento, conectividade e atuação:**
-
-```text
-[Câmera CSI] -- imagens --> [Raspberry Pi 5: Picamera2 + OpenCV]
-                                        | classe, destino e ID
-                                        | MQTT / rede local
-                                        v
-                              [Mosquitto - broker MQTT]
-                                        |
-                  +---------------------+--------------------+
-                  v                                          v
-       [ESP32-S3 / ESP-IDF]                    [Node-RED: validar/deduplicar]
-          | PWM -> [Servo A/B/C]                             | HTTP
-          | I2C -> [OLED]                                    v
-          +-- confirmação/status --> [Mosquitto]    [InfluxDB: eventos]
-                                                             | Flux
-                                                             v
-                                                    [Grafana: gráficos]
-
-[Botão PRG] -> [Mesmo ESP32] -> [Driver do motor] -> [Vibrador]
-[Mesmo ESP32] -- GPIO 6 --> [Acionamento da esteira*]
-```
-
-A câmera fornece a entrada visual; o Pi localiza o MDF, corrige a perspectiva e classifica sua marca. O ESP32 usa **Wi-Fi**, controla a vibração pelo botão e recebe as decisões MQTT. O Grafana apresenta os resultados, sem participar da decisão. Vídeo não é transmitido por MQTT; o rádio LoRa não é utilizado.
-
-\* O firmware mantém o GPIO 6 em nível alto na inicialização. Sua ligação ao acionamento da esteira depende do circuito da bancada; não há controle de velocidade implementado.
 
 ## 3. Situação visual e destino
 
