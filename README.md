@@ -32,8 +32,7 @@ Projeto de Conclusão de Curso — Capacitação **PNAAT 2026** (Programa Nacion
 
 O **TRIA** é uma PoC física de triagem integrada com **visão computacional e IoT**, voltada ao [Cenário 2](docs/Cen%C3%A1rios.pdf): componentes misturados, em contato ou sobrepostos em uma linha de manufatura. A proposta busca separar, identificar e encaminhar peças, registrando o processo para acompanhamento.
 
-Na bancada atual, um **motor sob uma plataforma de papelão** movimenta as peças enquanto o operador mantém o botão do ESP32 pressionado. Elas caem na esteira, onde a câmera do Raspberry Pi captura as placas de MDF. O software reconhece o **símbolo central**, decide A/B/C e publica via MQTT para atuação do servo e geração de gráficos no Grafana.
-
+Na bancada, **motor sob uma plataforma de mdf**, feito pensando já na separação onde a parte de saída da estrutura possui um teto de forma que não seiam peças sobrepostas, sendo confecinado na máquina de corte no laboratório, movimenta as peças após o potão ser pressionado no ESP32. Elas caem e passam por uma **rampa feita de mdf** projetada por nós para poder chegar na esteira de forma corrta, na esteira a câmera do Raspberry Pi captura as placas de MDF. O software reconhece o **símbolo central**, decide A/B/C e publica via MQTT para atuação do servo e geração de gráficos no Grafana.
 
 ## 2. Situação visual e destino
 
@@ -43,7 +42,7 @@ Na bancada atual, um **motor sob uma plataforma de papelão** movimenta as peça
 | Triângulo | `TRIÂNGULO` | B — peça normal |
 | X | `QUADRADO_COM_X` | C — descarte / defeito |
 
-As classes preservam os nomes do levantamento inicial. O código atual reconhece o **símbolo central**, usando contornos e geometria. Uma marca desconhecida não gera classificação válida; o pipeline tenta novamente enquanto a peça permanece na área de inspeção (ROI).
+As classes preservam os nomes do levantamento inicial. O código reconhece o **símbolo central**, usando contornos e geometria. Uma marca desconhecida não gera classificação válida; o pipeline tenta novamente enquanto a peça permanece na área de inspeção (ROI).
 
 ## 3. Estrutura do Repositório
 
@@ -105,14 +104,14 @@ Montagem: [guia do micro servo](tria-esp/LIGACAO_MICRO_SERVO.md). O pino é conf
 
 ## 5. Tópicos MQTT
 
-| Tópico | Publica | Consome atualmente |
+| Tópico | Publica | Consome |
 |--------|---------|--------------------|
 | `tria/triagem` | Pi: classe, destino e evento | ESP32 e Node-RED |
 | `tria/status/pi` | Pi: disponibilidade | Debug do Node-RED |
 | `tria/status/esp32` | ESP32: estado e última decisão | Integração ao Pi/Node-RED prevista |
 | `tria/atuador` | ESP32: confirmação com `id_evento` | Integração ao Pi/Node-RED prevista |
 
-MQTT usa **QoS 1**; status são retidos e o ESP32 configura Last Will. Seu timeout de 15 s considera ausência de decisões válidas, inclusive durante pausas na alimentação de peças. O broker atual permite acesso anônimo na rede de bancada.
+MQTT usa **QoS 1**; status são retidos e o ESP32 configura Last Will. Seu timeout de 15 s considera ausência de decisões válidas, inclusive durante pausas na alimentação de peças. O broker permite acesso anônimo na rede de bancada.
 
 ## 6. Payload MQTT (tria/triagem)
 
