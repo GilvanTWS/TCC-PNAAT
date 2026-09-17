@@ -8,26 +8,25 @@ Projeto de Conclusão de Curso — Capacitação **PNAAT 2026** (Programa Nacion
 - [TRIA - Triagem Visual Integrada de Componentes](#tria---triagem-visual-integrada-de-componentes)
   - [Sumário](#sumário)
   - [1. Visão Geral](#1-visão-geral)
-  - [3. Situação visual e destino](#3-situação-visual-e-destino)
-  - [4. Estrutura do Repositório](#4-estrutura-do-repositório)
-  - [5. Componentes](#5-componentes)
-  - [6. Tópicos MQTT](#6-tópicos-mqtt)
-  - [7. Payload MQTT (tria/triagem)](#7-payload-mqtt-triatriagem)
-  - [8. Requisitos e Critérios de Aceite](#8-requisitos-e-critérios-de-aceite)
+  - [2. Situação visual e destino](#2-situação-visual-e-destino)
+  - [3. Estrutura do Repositório](#3-estrutura-do-repositório)
+  - [4. Componentes](#4-componentes)
+  - [5. Tópicos MQTT](#5-tópicos-mqtt)
+  - [6. Payload MQTT (tria/triagem)](#6-payload-mqtt-triatriagem)
+  - [7. Requisitos e Critérios de Aceite](#7-requisitos-e-critérios-de-aceite)
     - [Funcionais](#funcionais)
     - [Não-funcionais](#não-funcionais)
-  - [9. Dependências](#9-dependências)
+  - [8. Dependências](#8-dependências)
     - [Hardware](#hardware)
     - [Software, bibliotecas e ferramentas](#software-bibliotecas-e-ferramentas)
-  - [10. Como Rodar](#10-como-rodar)
+  - [9. Como Rodar](#9-como-rodar)
     - [1. Classificador (Raspberry Pi)](#1-classificador-raspberry-pi)
       - [Reproduzir e avaliar os vídeos de ensaio](#reproduzir-e-avaliar-os-vídeos-de-ensaio)
     - [2. Stack MING](#2-stack-ming)
     - [3. Firmware ESP32 (tria-esp)](#3-firmware-esp32-tria-esp)
     - [Verificação inicial](#verificação-inicial)
-  - [11. Escopo](#11-escopo)
-  - [12. Licença](#12-licença)
-  - [13. Checklist de Conformidade](#13-checklist-de-conformidade)
+  - [10. Escopo](#10-escopo)
+  - [11. Licença](#11-licença)
 
 ## 1. Visão Geral
 
@@ -36,7 +35,7 @@ O **TRIA** é uma PoC física de triagem integrada com **visão computacional e 
 Na bancada atual, um **motor sob uma plataforma de papelão** movimenta as peças enquanto o operador mantém o botão do ESP32 pressionado. Elas caem na esteira, onde a câmera do Raspberry Pi captura as placas de MDF. O software reconhece o **símbolo central**, decide A/B/C e publica via MQTT para atuação do servo e geração de gráficos no Grafana.
 
 
-## 3. Situação visual e destino
+## 2. Situação visual e destino
 
 | Símbolo na placa de MDF | Classe MQTT | Destino |
 |------------------------|-------------|---------|
@@ -46,7 +45,7 @@ Na bancada atual, um **motor sob uma plataforma de papelão** movimenta as peça
 
 As classes preservam os nomes do levantamento inicial. O código atual reconhece o **símbolo central**, usando contornos e geometria. Uma marca desconhecida não gera classificação válida; o pipeline tenta novamente enquanto a peça permanece na área de inspeção (ROI).
 
-## 4. Estrutura do Repositório
+## 3. Estrutura do Repositório
 
 ```text
 TCC-PNAAT/
@@ -83,7 +82,7 @@ TCC-PNAAT/
 
 Documentos: [levantamento de requisitos](docs/TRIA_Entrega_1_Levantamento_de_Requisitos_PoC_Fisica.pdf), [apostila](docs/Apostila%20Trabalho%20de%20Conclus%C3%A3o%20da%20Capacita%C3%A7%C3%A3o%20-%20PNAAT%202026.pdf) e [roteiro do pitch](docs/RoteiroVideoPitch.pdf).
 
-## 5. Componentes
+## 4. Componentes
 
 | Componente / requisitos relacionados | Implementação |
 |-------------------------------------|---------------|
@@ -104,7 +103,7 @@ O firmware foi desenvolvido a partir da PoC do servo do Claylton. A configuraç�
 
 Montagem: [guia do micro servo](tria-esp/LIGACAO_MICRO_SERVO.md). O pino é configurado atualmente no `menuconfig`; o trecho de código desse guia é anterior à modularização. Os GPIOs dos motores são sinais para os circuitos de acionamento, cujo esquema ainda deve ser documentado.
 
-## 6. Tópicos MQTT
+## 5. Tópicos MQTT
 
 | Tópico | Publica | Consome atualmente |
 |--------|---------|--------------------|
@@ -115,7 +114,7 @@ Montagem: [guia do micro servo](tria-esp/LIGACAO_MICRO_SERVO.md). O pino é conf
 
 MQTT usa **QoS 1**; status são retidos e o ESP32 configura Last Will. Seu timeout de 15 s considera ausência de decisões válidas, inclusive durante pausas na alimentação de peças. O broker atual permite acesso anônimo na rede de bancada.
 
-## 7. Payload MQTT (tria/triagem)
+## 6. Payload MQTT (tria/triagem)
 
 ```json
 {
@@ -131,7 +130,7 @@ MQTT usa **QoS 1**; status são retidos e o ESP32 configura Last Will. Seu timeo
 
 `id_evento` vincula inspeção e confirmação. A classe `QUADRADO_COM_X` usa `defeito: true` e destino `C`; o tempo de processamento é incluído quando medido. **O ESP32 atua ao receber a decisão**: ainda não usa `instante_atuacao` para agendamento. A confirmação é de software, após a espera configurada, sem sensor de posição do servo.
 
-## 8. Requisitos e Critérios de Aceite
+## 7. Requisitos e Critérios de Aceite
 
 Resumo do [levantamento, seção 4](docs/TRIA_Entrega_1_Levantamento_de_Requisitos_PoC_Fisica.pdf). São **metas a validar na bancada**, não resultados já comprovados. RF02/RF03 usam os símbolos nas placas de MDF; RF07 usa a plataforma vibratória com botão.
 
@@ -158,7 +157,7 @@ Resumo do [levantamento, seção 4](docs/TRIA_Entrega_1_Levantamento_de_Requisit
 | RNF05 | Evitar duplicação | 30 IDs + 10 reenvios devem manter exatamente 30 eventos |
 | RNF06 | Operar localmente | 15 min sem Internet, mantendo a rede local |
 
-## 9. Dependências
+## 8. Dependências
 
 ### Hardware
 
@@ -186,7 +185,7 @@ Resumo do [levantamento, seção 4](docs/TRIA_Entrega_1_Levantamento_de_Requisit
 
 O flow usa nós nativos do Node-RED. O visualizador web usa a biblioteca padrão do Python. Tags `latest` e versões mínimas podem variar; registrar as versões utilizadas nos ensaios.
 
-## 10. Como Rodar
+## 9. Como Rodar
 
 Com as ferramentas da seção 9 instaladas, clone o [repositório](https://github.com/GilvanTWS/TCC-PNAAT):
 
@@ -299,7 +298,7 @@ docker compose exec mosquitto mosquitto_sub -h localhost -t 'tria/#' -v
 
 Use os IDs para comparar inspeção e confirmação. Registre os ensaios da seção 8; testes com imagens não comprovam desempenho físico ou operação contínua.
 
-## 11. Escopo
+## 10. Escopo
 
 **Incluído:** alimentação vibratória por botão, transporte, reconhecimento dos três símbolos, decisão MQTT, servo A/B/C, OLED, registro temporal e dashboard local.
 
@@ -307,18 +306,7 @@ Use os IDs para comparar inspeção e confirmação. Registre os ensaios da seç
 
 **A consolidar:** esquema dos circuitos dos motores, calibração de percurso/servo, evidências de desempenho e recuperação de rede. O consumo das confirmações pelo Pi/Node-RED, a persistência de estados e o painel de comunicação continuam previstos no levantamento.
 
-## 12. Licença
+## 11. Licença
 
 [MIT License](LICENSE) - Copyright 2026 GilvanTWS and Claylton-Muniz
 
-## 13. Checklist de Conformidade
-
-Artefatos da **Entrega 4**, conforme a rubrica e a Unidade 3 da apostila:
-
-- [x] Repositório com README e sumário.
-- [x] Diagrama com hardware, software, fluxos físicos e integração IoT/visão (seção 2).
-- [x] Requisitos e dependências coerentes com a solução atual (seções 5, 8 e 9).
-- [x] Pastas organizadas e arquivos localizáveis pelos caminhos indicados (seções 4 e 5).
-- [x] Preparação, instalação e configuração correspondentes às dependências (seção 10).
-
-O checklist verifica a documentação; os critérios de funcionamento dependem dos ensaios. Para a entrega, publique esta versão no repositório e informe o link na atividade.
