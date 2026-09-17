@@ -25,7 +25,7 @@ D1/D2 foram confirmados pela equipe, mas seus modelos são desconhecidos. Regist
 
 ## Medidas da estrutura
 
-A informação “rampa da altura do MDF” foi preservada literalmente na ficha. Ela não define espessura, altura de montagem, desnível ou inclinação. O desenho abaixo orienta **onde medir**; não é um desenho de fabricação e não está em escala.
+A informação “rampa da altura do MDF” foi preservada literalmente na ficha. Ela não define espessura, altura de montagem, desnível ou inclinação.
 
 ![Bancada física do TRIA](bancada-tria.jpg)
 
